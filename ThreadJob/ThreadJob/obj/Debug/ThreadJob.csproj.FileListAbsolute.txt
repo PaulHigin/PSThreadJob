@@ -1,0 +1,8 @@
+c:\Modules\ThreadJobModule\ThreadJob\ThreadJob\bin\Debug\ThreadJob.dll
+c:\Modules\ThreadJobModule\ThreadJob\ThreadJob\bin\Debug\ThreadJob.pdb
+c:\Modules\ThreadJobModule\ThreadJob\ThreadJob\bin\Debug\System.Management.Automation.dll
+c:\Modules\ThreadJobModule\ThreadJob\ThreadJob\obj\Debug\ThreadJob.csproj.CoreCompileInputs.cache
+c:\Modules\ThreadJobModule\ThreadJob\ThreadJob\obj\Debug\ThreadJob.dll
+c:\Modules\ThreadJobModule\ThreadJob\ThreadJob\obj\Debug\ThreadJob.pdb
+c:\Modules\ThreadJobModule\ThreadJob\ThreadJob\obj\Debug\ThreadJob.csproj.GenerateResource.Cache
+c:\Modules\ThreadJobModule\ThreadJob\ThreadJob\obj\Debug\ThreadJob.Properties.Resources.resources
