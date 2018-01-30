@@ -9,6 +9,7 @@ using System.Management.Automation;
 using System.Management.Automation.Runspaces;
 using System.Management.Automation.Language;
 using System.Management.Automation.Host;
+using System.ComponentModel;
 
 namespace ThreadJob
 {
@@ -116,7 +117,7 @@ namespace ThreadJob
     /// <summary>
     /// ThreadJob
     /// </summary>
-    public sealed class ThreadJob : Job
+    public sealed class ThreadJob : Job2
     {
         #region Private members
 
@@ -192,19 +193,21 @@ namespace ThreadJob
             _ps.Runspace = _rs;
             _ps.InvocationStateChanged += (sender, psStateChanged) =>
             {
+                var newStateInfo = psStateChanged.InvocationStateInfo;
+
                 // Update Job state.
-                switch (psStateChanged.InvocationStateInfo.State)
+                switch (newStateInfo.State)
                 {
                     case PSInvocationState.Running:
                         SetJobState(JobState.Running);
                         break;
 
                     case PSInvocationState.Stopped:
-                        SetJobState(JobState.Stopped);
+                        SetJobState(JobState.Stopped, newStateInfo.Reason);
                         break;
 
                     case PSInvocationState.Failed:
-                        SetJobState(JobState.Failed);
+                        SetJobState(JobState.Failed, newStateInfo.Reason);
                         break;
 
                     case PSInvocationState.Completed:
@@ -255,7 +258,7 @@ namespace ThreadJob
         /// <summary>
         /// StartJob
         /// </summary>
-        public void StartJob()
+        public override void StartJob()
         {
             if (this.JobStateInfo.State != JobState.NotStarted)
             {
@@ -395,6 +398,138 @@ namespace ThreadJob
                 // Ignore.  Thrown if Error collection is closed (race condition.).
             }
         }
+
+        #endregion
+
+        #region Base class overrides
+
+        /// <summary>
+        /// OnStartJobCompleted
+        /// </summary>
+        /// <param name="eventArgs"></param>
+        protected override void OnStartJobCompleted(AsyncCompletedEventArgs eventArgs)
+        {
+            base.OnStartJobCompleted(eventArgs);
+        }
+
+        /// <summary>
+        /// StartJobAsync
+        /// </summary>
+        public override void StartJobAsync()
+        {
+            this.StartJob();
+            this.OnStartJobCompleted(
+                new AsyncCompletedEventArgs(null, false, this));
+        }
+
+        /// <summary>
+        /// StopJob
+        /// </summary>
+        /// <param name="force"></param>
+        /// <param name="reason"></param>
+        public override void StopJob(bool force, string reason)
+        {
+            _ps.Stop();
+        }
+
+        /// <summary>
+        /// OnStopJobCompleted
+        /// </summary>
+        /// <param name="eventArgs"></param>
+        protected override void OnStopJobCompleted(AsyncCompletedEventArgs eventArgs)
+        {
+            base.OnStopJobCompleted(eventArgs);
+        }
+
+        /// <summary>
+        /// StopJobAsync
+        /// </summary>
+        public override void StopJobAsync()
+        {
+            _ps.BeginStop((iasync) => { OnStopJobCompleted(new AsyncCompletedEventArgs(null, false, this)); }, null);
+        }
+
+        /// <summary>
+        /// StopJobAsync
+        /// </summary>
+        /// <param name="force"></param>
+        /// <param name="reason"></param>
+        public override void StopJobAsync(bool force, string reason)
+        {
+            _ps.BeginStop((iasync) => { OnStopJobCompleted(new AsyncCompletedEventArgs(null, false, this)); }, null);
+        }
+
+        #region Not implemented
+
+        /// <summary>
+        /// SuspendJob
+        /// </summary>
+        public override void SuspendJob()
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <summary>
+        /// SuspendJob
+        /// </summary>
+        /// <param name="force"></param>
+        /// <param name="reason"></param>
+        public override void SuspendJob(bool force, string reason)
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <summary>
+        /// ResumeJobAsync
+        /// </summary>
+        public override void ResumeJobAsync()
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <summary>
+        /// ResumeJob
+        /// </summary>
+        public override void ResumeJob()
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <summary>
+        /// SuspendJobAsync
+        /// </summary>
+        public override void SuspendJobAsync()
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <summary>
+        /// SuspendJobAsync
+        /// </summary>
+        /// <param name="force"></param>
+        /// <param name="reason"></param>
+        public override void SuspendJobAsync(bool force, string reason)
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <summary>
+        /// UnblockJobAsync
+        /// </summary>
+        public override void UnblockJobAsync()
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <summary>
+        /// UnblockJob
+        /// </summary>
+        public override void UnblockJob()
+        {
+            throw new NotImplementedException();
+        }
+
+        #endregion
 
         #endregion
 

@@ -119,3 +119,42 @@ Describe 'Basic ThreadJob Tests' -Tags 'CI' {
         $numThreadJobs | Should be 0
     }
 }
+
+Describe 'Job2 Tests' -Tags 'CI' {
+
+    It 'Verifies StopJob API' {
+
+        $job = Start-ThreadJob -ScriptBlock { Start-Sleep -Seconds 60 } -ThrottleLimit 5
+        $job.StopJob($true, "No Reason")
+        $job.JobStateInfo.State | Should Be "Stopped"
+    }
+
+    It 'Verifies StopJobAsync API' {
+
+        $job = Start-ThreadJob -ScriptBlock { Start-Sleep -Seconds 60 } -ThrottleLimit 5
+        $job.StopJobAsync($true, "No Reason")
+        Wait-Job $job
+        $job.JobStateInfo.State | Should Be "Stopped"
+    }
+
+    It 'Verifies StartJobAsync API' {
+
+        $jobRunning = Start-ThreadJob -ScriptBlock { Start-Sleep -Seconds 60 } -ThrottleLimit 1
+        $jobNotRunning = Start-ThreadJob -ScriptBlock { Start-Sleep -Seconds 60 }
+
+        $jobNotRunning.JobStateInfo.State | Should Be "NotStarted"
+
+        # StartJobAsync starts jobs synchronously for ThreadJob jobs
+        $jobNotRunning.StartJobAsync()
+        $jobNotRunning.JobStateInfo.State | Should Be "Running"
+
+        Get-Job | Where PSJobTypeName -eq "ThreadJob" | Remove-Job -Force
+    }
+
+    It 'Verifies terminating job error' {
+
+        $job = Start-ThreadJob -ScriptBlock { throw "My Job Error!" } | Wait-Job
+        $results = $job | Receive-Job 2>&1
+        $results.ToString() | Should Be "My Job Error!"
+    }
+}
