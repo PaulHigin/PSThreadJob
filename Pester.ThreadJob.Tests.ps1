@@ -130,7 +130,33 @@ Describe 'Basic ThreadJob Tests' -Tags 'CI' {
         $numThreadJobs | Should be 0
     }
 
-    It 'ThreadJob Runspaces should be cleaned up at end state' {
+    It 'ThreadJob Runspaces should be cleaned up at completion' {
+
+        try
+        {
+            Get-Job | where PSJobTypeName -eq "ThreadJob" | Remove-Job -Force
+            $rsStartCount = (Get-Runspace).Count
+
+            # Start four thread jobs with ThrottleLimit set to two
+            $Job1 = Start-ThreadJob -ScriptBlock { "Hello 1!" } -ThrottleLimit 5
+            $job2 = Start-ThreadJob -ScriptBlock { "Hello 2!" }
+            $job3 = Start-ThreadJob -ScriptBlock { "Hello 3!" }
+            $job4 = Start-ThreadJob -ScriptBlock { "Hello 4!" }
+
+            $job1,$job2,$job3,$job4 | Wait-Job
+
+            # Allow for clean to happen
+            Start-Sleep -Seconds 1
+
+            (Get-Runspace).Count | Should Be $rsStartCount
+        }
+        finally
+        {
+            Get-Job | where PSJobTypeName -eq "ThreadJob" | Remove-Job -Force
+        }
+    }
+
+    It 'ThreadJob Runspaces should be cleaned up after job removal' {
 
         try {
             Get-Job | where PSJobTypeName -eq "ThreadJob" | Remove-Job -Force
