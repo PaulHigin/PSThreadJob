@@ -187,24 +187,25 @@ namespace ThreadJob
             // Create Runspace/PowerShell object and state callback.
             // The job script/command will run in a separate thread associated with the Runspace.
             _rs = RunspaceFactory.CreateRunspace(host);
-            _rs.Open();
             _ps = PowerShell.Create();
             _ps.Runspace = _rs;
             _ps.InvocationStateChanged += (sender, psStateChanged) =>
             {
+                var newStateInfo = psStateChanged.InvocationStateInfo;
+
                 // Update Job state.
-                switch (psStateChanged.InvocationStateInfo.State)
+                switch (newStateInfo.State)
                 {
                     case PSInvocationState.Running:
                         SetJobState(JobState.Running);
                         break;
 
                     case PSInvocationState.Stopped:
-                        SetJobState(JobState.Stopped);
+                        SetJobState(JobState.Stopped, newStateInfo.Reason, disposeRunspace:true);
                         break;
 
                     case PSInvocationState.Failed:
-                        SetJobState(JobState.Failed);
+                        SetJobState(JobState.Failed, newStateInfo.Reason, disposeRunspace:true);
                         break;
 
                     case PSInvocationState.Completed:
@@ -216,7 +217,7 @@ namespace ThreadJob
                         }
                         else
                         {
-                            SetJobState(JobState.Completed);
+                            SetJobState(JobState.Completed, newStateInfo.Reason, disposeRunspace:true);
                         }
                         break;
                 }
@@ -261,6 +262,9 @@ namespace ThreadJob
             {
                 throw new Exception(Properties.Resources.ResourceManager.GetString("CannotStartJob"));
             }
+
+            // Initialize Runspace state
+            _rs.Open();
 
             // If initial script block provided then execute.
             if (_initSb != null)
@@ -314,23 +318,19 @@ namespace ThreadJob
         /// <param name="disposing"></param>
         protected override void Dispose(bool disposing)
         {
-            base.Dispose(disposing);
             if (disposing)
             {
+                if (_ps.InvocationStateInfo.State == PSInvocationState.Running)
+                {
+                    _ps.Stop();
+                }
+                _ps.Dispose();
+
                 _input.Complete();
                 _output.Complete();
-                if (_ps != null)
-                {
-                    _ps.Dispose();
-                    _ps = null;
-                }
-
-                if (_rs != null)
-                {
-                    _rs.Dispose();
-                    _rs = null;
-                }
             }
+
+            base.Dispose(disposing);
         }
 
         /// <summary>
@@ -501,6 +501,16 @@ namespace ThreadJob
                         Error.Add(item);
                     }
                 };
+        }
+
+        private void SetJobState(JobState jobState, Exception reason, bool disposeRunspace = false)
+        {
+            // TODO: Figure out how to handle reason argument
+            SetJobState(jobState);
+            if (disposeRunspace)
+            {
+                _rs.Dispose();
+            }
         }
 
         #endregion
