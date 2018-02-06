@@ -12,6 +12,8 @@ Describe 'Basic ThreadJob Tests' -Tags 'CI' {
 
     BeforeAll {
 
+        Get-Job | where PSJobTypeName -eq "ThreadJob" | Remove-Job -Force
+
         $scriptFilePath1 = Join-Path $testdrive "TestThreadJobFile1.ps1"
         @'
         for ($i=0; $i -lt 10; $i++)
@@ -101,21 +103,62 @@ Describe 'Basic ThreadJob Tests' -Tags 'CI' {
 
     It 'ThreadJob ThrottleLimit and Queue' {
 
-        # Start four thread jobs with ThrottleLimit set to two
-        Get-Job | where PSJobTypeName -eq "ThreadJob" | Remove-Job -Force
-        Start-ThreadJob -ScriptBlock { Start-Sleep -Seconds 60 } -ThrottleLimit 2
-        Start-ThreadJob -ScriptBlock { Start-Sleep -Seconds 60 }
-        Start-ThreadJob -ScriptBlock { Start-Sleep -Seconds 60 }
-        Start-ThreadJob -ScriptBlock { Start-Sleep -Seconds 60 }
+        try
+        {
+            # Start four thread jobs with ThrottleLimit set to two
+            Get-Job | where PSJobTypeName -eq "ThreadJob" | Remove-Job -Force
+            Start-ThreadJob -ScriptBlock { Start-Sleep -Seconds 60 } -ThrottleLimit 2
+            Start-ThreadJob -ScriptBlock { Start-Sleep -Seconds 60 }
+            Start-ThreadJob -ScriptBlock { Start-Sleep -Seconds 60 }
+            Start-ThreadJob -ScriptBlock { Start-Sleep -Seconds 60 }
 
-        $numRunningThreadJobs = (Get-Job | where { ($_.PSJobTypeName -eq "ThreadJob") -and ($_.State -eq "Running") }).Count
-        $numQueuedThreadJobs = (Get-Job | where { ($_.PSJobTypeName -eq "ThreadJob") -and ($_.State -eq "NotStarted") }).Count
+            # Allow jobs to start
+            Start-Sleep -Seconds 1
 
-        $numRunningThreadJobs | Should be 2
-        $numQueuedThreadJobs | Should be 2
+            $numRunningThreadJobs = (Get-Job | where { ($_.PSJobTypeName -eq "ThreadJob") -and ($_.State -eq "Running") }).Count
+            $numQueuedThreadJobs = (Get-Job | where { ($_.PSJobTypeName -eq "ThreadJob") -and ($_.State -eq "NotStarted") }).Count
 
-        Get-Job | where PSJobTypeName -eq "ThreadJob" | Remove-Job -Force
+            $numRunningThreadJobs | Should be 2
+            $numQueuedThreadJobs | Should be 2
+        }
+        finally
+        {
+            Get-Job | where PSJobTypeName -eq "ThreadJob" | Remove-Job -Force
+        }
+
         $numThreadJobs = (Get-Job | where PSJobTypeName -eq "ThreadJob").Count
         $numThreadJobs | Should be 0
+    }
+
+    It 'ThreadJob Runspaces should be cleaned up at end state' {
+
+        try {
+            Get-Job | where PSJobTypeName -eq "ThreadJob" | Remove-Job -Force
+            $rsStartCount = (Get-Runspace).Count
+
+            # Start four thread jobs with ThrottleLimit set to two
+            $Job1 = Start-ThreadJob -ScriptBlock { Start-Sleep -Seconds 60 } -ThrottleLimit 2
+            $job2 = Start-ThreadJob -ScriptBlock { Start-Sleep -Seconds 60 }
+            $job3 = Start-ThreadJob -ScriptBlock { Start-Sleep -Seconds 60 }
+            $job4 = Start-ThreadJob -ScriptBlock { Start-Sleep -Seconds 60 }
+
+            # Allow jobs to start
+            Start-Sleep -Seconds 1
+
+            (Get-Runspace).Count | Should Be ($rsStartCount + 4)
+
+            # Stop two jobs
+            $job1 | Remove-Job -Force
+            $job3 | Remove-Job -Force
+
+            (Get-Runspace).Count | Should Be ($rsStartCount + 2)
+
+        }
+        finally
+        {
+            Get-Job | where PSJobTypeName -eq "ThreadJob" | Remove-Job -Force
+        }
+
+        (Get-Runspace).Count | Should Be $rsStartCount
     }
 }
