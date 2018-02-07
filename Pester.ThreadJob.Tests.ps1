@@ -187,4 +187,18 @@ Describe 'Basic ThreadJob Tests' -Tags 'CI' {
 
         (Get-Runspace).Count | Should Be $rsStartCount
     }
+
+    It 'ThreadJob jobs should work with Receive-Job -AutoRemoveJob' {
+
+        Get-Job | where PSJobTypeName -eq "ThreadJob" | Remove-Job -Force
+
+        $job1 = Start-ThreadJob -ScriptBlock { 1..2 | foreach { Start-Sleep -Seconds 1; "Output $_" } } -ThrottleLimit 2
+        $job2 = Start-ThreadJob -ScriptBlock { 1..2 | foreach { Start-Sleep -Seconds 1; "Output $_" } }
+        $job3 = Start-ThreadJob -ScriptBlock { 1..2 | foreach { Start-Sleep -Seconds 1; "Output $_" } }
+        $job4 = Start-ThreadJob -ScriptBlock { 1..2 | foreach { Start-Sleep -Seconds 1; "Output $_" } }
+
+        $null = $job1,$job2,$job3,$job4 | Receive-Job -Wait -AutoRemoveJob
+
+        (Get-Job | where PSJobTypeName -eq "ThreadJob").Count | Should Be 0
+    }
 }
