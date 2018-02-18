@@ -39,7 +39,7 @@ Describe 'Basic ThreadJob Tests' -Tags 'CI' {
     }
 
     It 'ThreadJob with ScriptBlock' {
-    
+
         $job = Start-ThreadJob -ScriptBlock { "Hello" }
         $results = $job | Receive-Job -Wait
         $results | Should be "Hello"
@@ -200,5 +200,13 @@ Describe 'Basic ThreadJob Tests' -Tags 'CI' {
         $null = $job1,$job2,$job3,$job4 | Receive-Job -Wait -AutoRemoveJob
 
         (Get-Job | where PSJobTypeName -eq "ThreadJob").Count | Should Be 0
+    }
+
+    It 'ThreadJob passes Information stream' {
+
+        $job = Start-ThreadJob -ScriptBlock { Write-Information "My Info"}
+        $null = $job | Receive-Job -Wait -InformationVariable info
+        $info  | Should be "My Info"
+        $job | Remove-Job
     }
 }
