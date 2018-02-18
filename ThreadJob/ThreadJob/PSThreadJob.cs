@@ -242,6 +242,9 @@ namespace ThreadJob
             this.Debug = _ps.Streams.Debug;
             this.Debug.EnumeratorNeverBlocks = true;
 
+            this.Information = _ps.Streams.Information;
+            this.Information.EnumeratorNeverBlocks = true;
+
             // Add to job repository
             if (psCmdlet != null)
             {
