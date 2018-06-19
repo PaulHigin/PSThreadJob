@@ -8,6 +8,7 @@ using System.Management.Automation;
 using System.Management.Automation.Runspaces;
 using System.Management.Automation.Language;
 using System.Management.Automation.Host;
+using System.ComponentModel;
 using System.Globalization;
 using System.Text;
 
@@ -114,10 +115,154 @@ namespace ThreadJob
         #endregion
     }
 
+    public sealed class ThreadJobSourceAdapter : JobSourceAdapter
+    {
+        #region Members
+
+        private ConcurrentDictionary<Guid, Job2> _repository;
+
+        #endregion
+
+        #region Constructor
+
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        public ThreadJobSourceAdapter()
+        {
+            Name = "ThreadJobSourceAdapter";
+            _repository = new ConcurrentDictionary<Guid, Job2>();
+        }
+
+        #endregion
+
+        #region JobSourceAdapter Implementation
+
+        /// <summary>
+        /// NewJob
+        /// </summary>
+        public override Job2 NewJob(JobInvocationInfo specification)
+        {
+            var job = specification.Parameters[0][0].Value as ThreadJob;
+            if (job != null)
+            {
+                _repository.TryAdd(job.InstanceId, job);
+            }
+            return job;
+        }
+
+        /// <summary>
+        /// GetJobs
+        /// </summary>
+        public override IList<Job2> GetJobs()
+        {
+            return _repository.Values.ToArray();
+        }
+
+        /// <summary>
+        /// GetJobsByName
+        /// </summary>
+        public override IList<Job2> GetJobsByName(string name, bool recurse)
+        {
+            List<Job2> rtnList = new List<Job2>();
+            foreach (var job in _repository.Values)
+            {
+                if (job.Name.Equals(name, StringComparison.OrdinalIgnoreCase))
+                {
+                    rtnList.Add(job);
+                }
+            }
+            return rtnList;
+        }
+
+        /// <summary>
+        /// GetJobsByCommand
+        /// </summary>
+        public override IList<Job2> GetJobsByCommand(string command, bool recurse)
+        {
+            List<Job2> rtnList = new List<Job2>();
+            foreach (var job in _repository.Values)
+            {
+                if (job.Command.Equals(command, StringComparison.OrdinalIgnoreCase))
+                {
+                    rtnList.Add(job);
+                }
+            }
+            return rtnList;
+        }
+
+        /// <summary>
+        /// GetJobByInstanceId
+        /// </summary>
+        public override Job2 GetJobByInstanceId(Guid instanceId, bool recurse)
+        {
+            Job2 job;
+            if (_repository.TryGetValue(instanceId, out job))
+            {
+                return job;
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// GetJobBySessionId
+        /// </summary>
+        public override Job2 GetJobBySessionId(int id, bool recurse)
+        {
+            foreach (var job in _repository.Values)
+            {
+                if (job.Id == id)
+                {
+                    return job;
+                }
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// GetJobsByState
+        /// </summary>
+        public override IList<Job2> GetJobsByState(JobState state, bool recurse)
+        {
+            List<Job2> rtnList = new List<Job2>();
+            foreach (var job in _repository.Values)
+            {
+                if (job.JobStateInfo.State == state)
+                {
+                    rtnList.Add(job);
+                }
+            }
+            return rtnList;
+        }
+
+        /// <summary>
+        /// GetJobsByFilter
+        /// </summary>
+        public override IList<Job2> GetJobsByFilter(Dictionary<string, object> filter, bool recurse)
+        {
+            return GetJobs();
+        }
+
+        /// <summary>
+        /// RemoveJob
+        /// </summary>
+        public override void RemoveJob(Job2 job)
+        {
+            Job2 removeJob;
+            if (_repository.TryGetValue(job.InstanceId, out removeJob))
+            {
+                removeJob.StopJob();
+                _repository.TryRemove(job.InstanceId, out removeJob);
+            }
+        }
+
+        #endregion
+    }
+
     /// <summary>
     /// ThreadJob
     /// </summary>
-    public sealed class ThreadJob : Job
+    public sealed class ThreadJob : Job2
     {
         #region Private members
 
@@ -136,6 +281,19 @@ namespace ThreadJob
         private const string VERBATIM_ARGUMENT = "--%";
 
         private static ThreadJobQueue s_JobQueue;
+
+        #endregion
+
+        #region Properties
+
+        /// <summary>
+        /// Specifies the job definition for the JobManager
+        /// </summary>
+        public JobDefinition ThreadJobDefinition
+        {
+            get;
+            private set;
+        }
 
         #endregion
 
@@ -277,11 +435,13 @@ namespace ThreadJob
             this.Debug = _ps.Streams.Debug;
             this.Debug.EnumeratorNeverBlocks = true;
 
-            // Add to job repository
-            if (psCmdlet != null)
-            {
-                psCmdlet.JobRepository.Add(this);
-            }
+            // Create the JobManager job definition and job specification, and add to the JobManager.
+            ThreadJobDefinition = new JobDefinition(typeof(ThreadJobSourceAdapter), _sb.ToString(), Name);
+            Dictionary<string, object> parameterCollection = new Dictionary<string, object>();
+            parameterCollection.Add("NewJob", this);
+            var jobSpecification = new JobInvocationInfo(ThreadJobDefinition, parameterCollection);
+            var newJob = psCmdlet.JobManager.NewJob(jobSpecification);
+            System.Diagnostics.Debug.Assert(newJob == this, "JobManager must return this job");
         }
 
         #endregion
@@ -291,7 +451,7 @@ namespace ThreadJob
         /// <summary>
         /// StartJob
         /// </summary>
-        public void StartJob()
+        public override void StartJob()
         {
             if (this.JobStateInfo.State != JobState.NotStarted)
             {
@@ -433,6 +593,138 @@ namespace ThreadJob
 
         #endregion
 
+        #region Base class overrides
+
+        /// <summary>
+        /// OnStartJobCompleted
+        /// </summary>
+        /// <param name="eventArgs"></param>
+        protected override void OnStartJobCompleted(AsyncCompletedEventArgs eventArgs)
+        {
+            base.OnStartJobCompleted(eventArgs);
+        }
+
+        /// <summary>
+        /// StartJobAsync
+        /// </summary>
+        public override void StartJobAsync()
+        {
+            this.StartJob();
+            this.OnStartJobCompleted(
+                new AsyncCompletedEventArgs(null, false, this));
+        }
+
+        /// <summary>
+        /// StopJob
+        /// </summary>
+        /// <param name="force"></param>
+        /// <param name="reason"></param>
+        public override void StopJob(bool force, string reason)
+        {
+            _ps.Stop();
+        }
+
+        /// <summary>
+        /// OnStopJobCompleted
+        /// </summary>
+        /// <param name="eventArgs"></param>
+        protected override void OnStopJobCompleted(AsyncCompletedEventArgs eventArgs)
+        {
+            base.OnStopJobCompleted(eventArgs);
+        }
+
+        /// <summary>
+        /// StopJobAsync
+        /// </summary>
+        public override void StopJobAsync()
+        {
+            _ps.BeginStop((iasync) => { OnStopJobCompleted(new AsyncCompletedEventArgs(null, false, this)); }, null);
+        }
+
+        /// <summary>
+        /// StopJobAsync
+        /// </summary>
+        /// <param name="force"></param>
+        /// <param name="reason"></param>
+        public override void StopJobAsync(bool force, string reason)
+        {
+            _ps.BeginStop((iasync) => { OnStopJobCompleted(new AsyncCompletedEventArgs(null, false, this)); }, null);
+        }
+
+        #region Not implemented
+
+        /// <summary>
+        /// SuspendJob
+        /// </summary>
+        public override void SuspendJob()
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <summary>
+        /// SuspendJob
+        /// </summary>
+        /// <param name="force"></param>
+        /// <param name="reason"></param>
+        public override void SuspendJob(bool force, string reason)
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <summary>
+        /// ResumeJobAsync
+        /// </summary>
+        public override void ResumeJobAsync()
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <summary>
+        /// ResumeJob
+        /// </summary>
+        public override void ResumeJob()
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <summary>
+        /// SuspendJobAsync
+        /// </summary>
+        public override void SuspendJobAsync()
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <summary>
+        /// SuspendJobAsync
+        /// </summary>
+        /// <param name="force"></param>
+        /// <param name="reason"></param>
+        public override void SuspendJobAsync(bool force, string reason)
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <summary>
+        /// UnblockJobAsync
+        /// </summary>
+        public override void UnblockJobAsync()
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <summary>
+        /// UnblockJob
+        /// </summary>
+        public override void UnblockJob()
+        {
+            throw new NotImplementedException();
+        }
+
+        #endregion
+
+        #endregion
+
         #region Private methods
 
         // Private methods
@@ -523,8 +815,7 @@ namespace ThreadJob
 
         private void SetJobState(JobState jobState, Exception reason, bool disposeRunspace = false)
         {
-            // TODO: Figure out how to handle reason argument
-            SetJobState(jobState);
+            base.SetJobState(jobState, reason);
             if (disposeRunspace)
             {
                 _rs.Dispose();
