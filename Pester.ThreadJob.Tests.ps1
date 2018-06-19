@@ -36,6 +36,18 @@ Describe 'Basic ThreadJob Tests' -Tags 'CI' {
         }
 '@ > $scriptFilePath3
 
+        $scriptFilePath4 = Join-Path $testdrive "TestThreadJobFile4.ps1"
+        @'
+        Write-Output $using:Var1
+        Write-Output $($using:Array1)[2]
+        Write-Output @(,$using:Array1)
+'@ > $scriptFilePath4
+
+        $scriptFilePath5 = Join-Path $testdrive "TestThreadJobFile5.ps1"
+        @'
+        param ([string]$param1)
+        Write-Output "$param1 $using:Var1 $using:Var2"
+'@ > $scriptFilePath5
     }
 
     It 'ThreadJob with ScriptBlock' {
@@ -69,6 +81,45 @@ Describe 'Basic ThreadJob Tests' -Tags 'CI' {
         $results[1] | Should be "Goodbye"
     }
 
+    It 'ThreadJob with ScriptBlock and Using variables' {
+
+        $Var1 = "Hello"
+        $Var2 = "Goodbye"
+        $Var3 = 102
+        $Var4 = 1..5
+        $global:GVar1 = "GlobalVar"
+        $job = Start-ThreadJob -ScriptBlock {
+            Write-Output $using:Var1
+            Write-Output $using:Var2
+            Write-Output $using:Var3
+            Write-Output ($using:Var4)[1]
+            Write-Output @(,$using:Var4)
+            Write-Output $using:GVar1
+        }
+
+        $results = $job | Receive-Job -Wait
+        $results[0] | Should Be $Var1
+        $results[1] | Should Be $Var2
+        $results[2] | Should Be $Var3
+        $results[3] | Should Be 2
+        $results[4] | Should Be $Var4
+        $results[5] | Should Be $global:GVar1
+    }
+
+    It 'ThreadJob with ScriptBlock and Using variables and argument list' {
+
+        $Var1 = "Hello"
+        $Var2 = 52
+        $job = Start-ThreadJob -ScriptBlock {
+            param ([string] $param1)
+
+            "$using:Var1 $param1 $using:Var2"
+        } -ArgumentList "There"
+
+        $results = $job | Receive-Job -Wait
+        $results | Should Be "Hello There 52"
+    }
+
     It 'ThreadJob with ScriptFile' {
 
         $job = Start-ThreadJob -FilePath $scriptFilePath1
@@ -99,6 +150,27 @@ Describe 'Basic ThreadJob Tests' -Tags 'CI' {
         $results = $job | Receive-Job -Wait
         $results[0] | Should be "Hello"
         $results[1] | Should be "Goodbye"
+    }
+
+    It 'ThreadJob with ScriptFile and Using variables' {
+
+        $Var1 = "Hello!"
+        $Array1 = 1..10
+
+        $job = Start-ThreadJob -FilePath $scriptFilePath4
+        $results = $job | Receive-Job -Wait
+        $results[0] | Should be $Var1
+        $results[1] | Should be 3
+        $results[2] | Should be $Array1
+    }
+
+    It 'ThreadJob with ScriptFile and Using variables with argument list' {
+
+        $Var1 = "There"
+        $Var2 = 60
+        $job = Start-ThreadJob -FilePath $scriptFilePath5 -ArgumentList "Hello"
+        $results = $job | Receive-Job -Wait
+        $results | Should Be "Hello There 60"
     }
 
     It 'ThreadJob ThrottleLimit and Queue' {

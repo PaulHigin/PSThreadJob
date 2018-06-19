@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Linq;
 using System.Threading;
-using System.Resources;
 using System.Collections.Generic;
 using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
@@ -9,6 +8,8 @@ using System.Management.Automation;
 using System.Management.Automation.Runspaces;
 using System.Management.Automation.Language;
 using System.Management.Automation.Host;
+using System.Globalization;
+using System.Text;
 
 namespace ThreadJob
 {
@@ -124,11 +125,15 @@ namespace ThreadJob
         private string _filePath;
         private ScriptBlock _initSb;
         private object[] _argumentList;
+        private object[] _usingValuesArray;
+        private Dictionary<string, object> _usingValuesMap;
         private PSDataCollection<object> _input;
         private Runspace _rs;
         private PowerShell _ps;
         private PSDataCollection<PSObject> _output;
         private bool _runningInitScript;
+
+        private const string VERBATIM_ARGUMENT = "--%";
 
         private static ThreadJobQueue s_JobQueue;
 
@@ -222,6 +227,36 @@ namespace ThreadJob
                         break;
                 }
             };
+
+            // Get script block to run.
+            if (!string.IsNullOrEmpty(_filePath))
+            {
+                _sb = GetScriptBlockFromFile(_filePath, psCmdlet);
+                if (_sb == null)
+                {
+                    throw new InvalidOperationException(Properties.Resources.ResourceManager.GetString("CannotParseScriptFile"));
+                }
+            }
+            else if (_sb == null)
+            {
+                throw new PSArgumentNullException(Properties.Resources.ResourceManager.GetString("NoScriptToRun"));
+            }
+
+            // Get any using variables.
+            var usingAsts = _sb.Ast.FindAll(ast => ast is UsingExpressionAst, searchNestedScriptBlocks: true).Cast<UsingExpressionAst>();
+            if (usingAsts != null &&
+                usingAsts.FirstOrDefault() != null)
+            {
+                // Get using variables as an array or dictionary, depending on PowerShell version.
+                if (psCmdlet.Host.Version.Major >= 5)
+                {
+                    _usingValuesMap = GetUsingValuesAsDictionary(usingAsts, psCmdlet);
+                }
+                else if (psCmdlet.Host.Version.Major == 3 || psCmdlet.Host.Version.Major == 4)
+                {
+                    _usingValuesArray = GetUsingValuesAsArray(usingAsts, psCmdlet);
+                }
+            }
 
             // Hook up data streams.
             this.Output = _output;
@@ -404,25 +439,7 @@ namespace ThreadJob
         private void RunScript()
         {
             _ps.Commands.Clear();
-
-            if (_sb != null)
-            {
-                // TODO: Add support for V3 using variables.  This is currently internal access only.
-                // object[] usingValues = ScriptBlockToPowerShellConverter.GetUsingValues(scriptBlock, Context, null);
-                // See: private PowerShell PSExecutionCmdlet.GetPowerShellForPsv3OrLater(string serverPsVersion)
-
-                _ps.AddScript(_sb.ToString());
-            }
-            else if (!string.IsNullOrEmpty(_filePath))
-            {
-                ScriptBlock sb = GetScriptBlockFromFile(_filePath);
-                if (sb == null)
-                {
-                    throw new InvalidOperationException(Properties.Resources.ResourceManager.GetString("CannotParseScriptFile"));
-                }
-
-                _ps.AddScript(sb.ToString());
-            }
+            _ps.AddScript(_sb.ToString());
 
             if (_argumentList != null)
             {
@@ -432,10 +449,20 @@ namespace ThreadJob
                 }
             }
 
+            // Using variables
+            if (_usingValuesMap != null && _usingValuesMap.Count > 0)
+            {
+                _ps.AddParameter(VERBATIM_ARGUMENT, _usingValuesMap);
+            }
+            else if (_usingValuesArray != null && _usingValuesArray.Length > 0)
+            {
+                _ps.AddParameter(VERBATIM_ARGUMENT, _usingValuesArray);
+            }
+
             _ps.BeginInvoke<object, PSObject>(_input, _output);
         }
 
-        private ScriptBlock GetScriptBlockFromFile(string filePath)
+        private ScriptBlock GetScriptBlockFromFile(string filePath, PSCmdlet psCmdlet)
         {
             if (WildcardPattern.ContainsWildcardCharacters(filePath))
             {
@@ -447,17 +474,8 @@ namespace ThreadJob
                 throw new ArgumentException(Properties.Resources.ResourceManager.GetString("FilePathExt"));
             }
 
-            string resolvedPath = null;
-            if (_rs.SessionStateProxy.Path != null)
-            {
-                ProviderInfo provider = null;
-                resolvedPath = _rs.SessionStateProxy.Path.GetResolvedProviderPathFromPSPath(filePath, out provider).FirstOrDefault();
-            }
-            else
-            {
-                resolvedPath = filePath;
-            }
-
+            ProviderInfo provider = null;
+            string resolvedPath = psCmdlet.GetResolvedProviderPathFromPSPath(filePath, out provider).FirstOrDefault();
             if (!string.IsNullOrEmpty(resolvedPath))
             {
                 Token[] tokens;
@@ -511,6 +529,65 @@ namespace ThreadJob
             {
                 _rs.Dispose();
             }
+        }
+
+        private static object[] GetUsingValuesAsArray(IEnumerable<UsingExpressionAst> usingAsts, PSCmdlet psCmdlet)
+        {
+            return GetUsingValuesAsDictionary(usingAsts, psCmdlet).Values.ToArray();
+        }
+
+        private static Dictionary<string, object> GetUsingValuesAsDictionary(IEnumerable<UsingExpressionAst> usingAsts, PSCmdlet psCmdlet)
+        {
+            Dictionary<string, object> usingValues = new Dictionary<string, object>();
+
+            foreach (var usingAst in usingAsts)
+            {
+                var varAst = usingAst.SubExpression as VariableExpressionAst;
+                if (varAst == null)
+                {
+                    var msg = string.Format(CultureInfo.InvariantCulture,
+                        Properties.Resources.ResourceManager.GetString("UsingNotVariableExpression"), 
+                        new object[] { usingAst.Extent.Text });
+                    throw new PSInvalidOperationException(msg);
+                }
+
+                try
+                {
+                    var usingValue = psCmdlet.GetVariableValue(varAst.VariablePath.UserPath);
+                    var usingKey = GetUsingExpressionKey(usingAst);
+                    if (!usingValues.ContainsKey(usingKey))
+                    {
+                        usingValues.Add(usingKey, usingValue);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    var msg = string.Format(CultureInfo.InvariantCulture,
+                        Properties.Resources.ResourceManager.GetString("UsingVariableNotFound"), 
+                        new object[] { usingAst.Extent.Text });
+                    throw new PSInvalidOperationException(msg, ex);
+                }
+            }
+
+            return usingValues;
+        }
+
+        /// <summary>
+        /// This method creates a dictionary key for a Using expression value that is bound to
+        /// a thread job script block parameter.  PowerShell version 5.0+ recognizes this and performs
+        /// the correct Using parameter argument binding.
+        /// </summary>
+        /// <param name="usingAst">A using expression</param>
+        /// <returns>Base64 encoded string as the key of the UsingExpressionAst</returns>
+        internal static string GetUsingExpressionKey(UsingExpressionAst usingAst)
+        {
+            string usingAstText = usingAst.ToString();
+            if (usingAst.SubExpression is VariableExpressionAst)
+            {
+                usingAstText = usingAstText.ToLowerInvariant();
+            }
+
+            return Convert.ToBase64String(Encoding.Unicode.GetBytes(usingAstText.ToCharArray()));
         }
 
         #endregion

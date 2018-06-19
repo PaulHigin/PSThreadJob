@@ -95,5 +95,32 @@ namespace ThreadJob.Properties {
                 return ResourceManager.GetString("FilePathWildcards", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No script block or script file was provided for the job to run..
+        /// </summary>
+        internal static string NoScriptToRun {
+            get {
+                return ResourceManager.GetString("NoScriptToRun", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Cannot get the value of the Using expression {0}.  Start-ThreadJob only supports using variable expressions..
+        /// </summary>
+        internal static string UsingNotVariableExpression {
+            get {
+                return ResourceManager.GetString("UsingNotVariableExpression", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Unable to find Using variable {0}..
+        /// </summary>
+        internal static string UsingVariableNotFound {
+            get {
+                return ResourceManager.GetString("UsingVariableNotFound", resourceCulture);
+            }
+        }
     }
 }

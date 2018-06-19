@@ -129,4 +129,13 @@
   <data name="FilePathWildcards" xml:space="preserve">
     <value>FilePath cannot contain wildcards.</value>
   </data>
+  <data name="NoScriptToRun" xml:space="preserve">
+    <value>No script block or script file was provided for the job to run.</value>
+  </data>
+  <data name="UsingNotVariableExpression" xml:space="preserve">
+    <value>Cannot get the value of the Using expression {0}.  Start-ThreadJob only supports using variable expressions.</value>
+  </data>
+  <data name="UsingVariableNotFound" xml:space="preserve">
+    <value>Unable to find Using variable {0}.</value>
+  </data>
 </root>
