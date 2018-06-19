@@ -579,7 +579,7 @@ namespace ThreadJob
         /// </summary>
         /// <param name="usingAst">A using expression</param>
         /// <returns>Base64 encoded string as the key of the UsingExpressionAst</returns>
-        internal static string GetUsingExpressionKey(UsingExpressionAst usingAst)
+        private static string GetUsingExpressionKey(UsingExpressionAst usingAst)
         {
             string usingAstText = usingAst.ToString();
             if (usingAst.SubExpression is VariableExpressionAst)
