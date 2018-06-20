@@ -12,8 +12,6 @@ Describe 'Basic ThreadJob Tests' -Tags 'CI' {
 
     BeforeAll {
 
-        Get-Job | where PSJobTypeName -eq "ThreadJob" | Remove-Job -Force
-
         $scriptFilePath1 = Join-Path $testdrive "TestThreadJobFile1.ps1"
         @'
         for ($i=0; $i -lt 10; $i++)
@@ -48,6 +46,11 @@ Describe 'Basic ThreadJob Tests' -Tags 'CI' {
         param ([string]$param1)
         Write-Output "$param1 $using:Var1 $using:Var2"
 '@ > $scriptFilePath5
+    }
+
+    AfterEach {
+
+        Get-Job | where PSJobTypeName -eq "ThreadJob" | Remove-Job -Force
     }
 
     It 'ThreadJob with ScriptBlock' {
@@ -284,6 +287,11 @@ Describe 'Basic ThreadJob Tests' -Tags 'CI' {
 
 Describe 'Job2 Tests' -Tags 'CI' {
 
+    AfterEach {
+
+        Get-Job | where PSJobTypeName -eq "ThreadJob" | Remove-Job -Force
+    }
+
     It 'Verifies StopJob API' {
 
         $job = Start-ThreadJob -ScriptBlock { Start-Sleep -Seconds 60 } -ThrottleLimit 5
@@ -309,8 +317,6 @@ Describe 'Job2 Tests' -Tags 'CI' {
         # StartJobAsync starts jobs synchronously for ThreadJob jobs
         $jobNotRunning.StartJobAsync()
         $jobNotRunning.JobStateInfo.State | Should Be "Running"
-
-        Get-Job | Where PSJobTypeName -eq "ThreadJob" | Remove-Job -Force
     }
 
     It 'Verifies JobSourceAdapter Get-Jobs' {
@@ -335,8 +341,6 @@ Describe 'Job2 Tests' -Tags 'CI' {
         # Get-Job -Filter is not supported
         $result = Get-Job -Filter @{Id = ($job.Id)} 3>$null
         $result | Should Be $null
-
-        Remove-Job $job
     }
 
     It 'Verifies terminating job error' {
@@ -344,7 +348,5 @@ Describe 'Job2 Tests' -Tags 'CI' {
         $job = Start-ThreadJob -ScriptBlock { throw "My Job Error!" } | Wait-Job
         $results = $job | Receive-Job 2>&1
         $results.ToString() | Should Be "My Job Error!"
-
-        Remove-Job $job
     }
 }
