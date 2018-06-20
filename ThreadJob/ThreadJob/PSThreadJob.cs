@@ -240,7 +240,7 @@ namespace ThreadJob
         /// </summary>
         public override IList<Job2> GetJobsByFilter(Dictionary<string, object> filter, bool recurse)
         {
-            return GetJobs();
+            throw new PSNotSupportedException();
         }
 
         /// <summary>
@@ -436,7 +436,7 @@ namespace ThreadJob
             this.Debug.EnumeratorNeverBlocks = true;
 
             // Create the JobManager job definition and job specification, and add to the JobManager.
-            ThreadJobDefinition = new JobDefinition(typeof(ThreadJobSourceAdapter), _sb.ToString(), Name);
+            ThreadJobDefinition = new JobDefinition(typeof(ThreadJobSourceAdapter), "", Name);
             Dictionary<string, object> parameterCollection = new Dictionary<string, object>();
             parameterCollection.Add("NewJob", this);
             var jobSpecification = new JobInvocationInfo(ThreadJobDefinition, parameterCollection);

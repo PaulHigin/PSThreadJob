@@ -313,10 +313,38 @@ Describe 'Job2 Tests' -Tags 'CI' {
         Get-Job | Where PSJobTypeName -eq "ThreadJob" | Remove-Job -Force
     }
 
+    It 'Verifies JobSourceAdapter Get-Jobs' {
+
+        $job = Start-ThreadJob -ScriptBlock { "Hello" } | Wait-Job
+
+        $getJob = Get-Job -InstanceId $job.InstanceId 2>$null
+        $getJob | Should Be $job
+
+        $getJob = Get-Job -Name $job.Name 2>$null
+        $getJob | Should Be $job
+
+        $getJob = Get-Job -Command ' "hello" ' 2>$null
+        $getJob | Should Be $job
+
+        $getJob = Get-Job -State $job.JobStateInfo.State 2>$null
+        $getJob | Should Be $job
+
+        $getJob = Get-Job -Id $job.Id 2>$null
+        $getJob | Should Be $job
+
+        # Get-Job -Filter is not supported
+        $result = Get-Job -Filter @{Id = ($job.Id)} 3>$null
+        $result | Should Be $null
+
+        Remove-Job $job
+    }
+
     It 'Verifies terminating job error' {
 
         $job = Start-ThreadJob -ScriptBlock { throw "My Job Error!" } | Wait-Job
         $results = $job | Receive-Job 2>&1
         $results.ToString() | Should Be "My Job Error!"
+
+        Remove-Job $job
     }
 }
