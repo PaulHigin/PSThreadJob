@@ -1,4 +1,7 @@
-﻿using System;
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -434,6 +437,9 @@ namespace ThreadJob
 
             this.Debug = _ps.Streams.Debug;
             this.Debug.EnumeratorNeverBlocks = true;
+
+            this.Information = _ps.Streams.Information;
+            this.Information.EnumeratorNeverBlocks = true;
 
             // Create the JobManager job definition and job specification, and add to the JobManager.
             ThreadJobDefinition = new JobDefinition(typeof(ThreadJobSourceAdapter), "", Name);

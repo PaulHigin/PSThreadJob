@@ -1,6 +1,5 @@
-﻿##
-## ThreadJob Tests
-##
+﻿# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
 
 Import-Module -Name ".\ThreadJob.psd1"
 if (! $?)
@@ -181,6 +180,13 @@ Describe 'Basic ThreadJob Tests' -Tags 'CI' {
         $job = Start-ThreadJob -ScriptBlock { throw "MyError!" }
         $job | Wait-Job
         $job.JobStateInfo.Reason.Message | Should Be "MyError!"
+    }
+
+    It 'ThreadJob passes Information stream' {
+
+        $job = Start-ThreadJob -ScriptBlock { Write-Information "My Info"}
+        $null = $job | Receive-Job -Wait -InformationVariable info
+        $info  | Should be "My Info"
     }
 
     It 'ThreadJob ThrottleLimit and Queue' {
