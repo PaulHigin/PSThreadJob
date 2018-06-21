@@ -11,8 +11,6 @@ This module exports a single cmdlet, Start-ThreadJob, which works similarly to t
 
 Also ThreadJob jobs support a ThrottleLimit parameter to limit the number of running jobs, and thus running threads, at a time. If more jobs are started then they go into a queue and wait until the current number of jobs drops below the throttle limit.
 
-NOTE: The 'using' keyword is not currently supported, and arguments must be passed in using the -ArgumentList parameter.
-
 Examples:
 ```powershell
 PS C:\> Start-ThreadJob -ScriptBlock { 1..100 | % { sleep 1; "Output $_" } } -ThrottleLimit 2
