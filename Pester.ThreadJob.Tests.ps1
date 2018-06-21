@@ -182,13 +182,6 @@ Describe 'Basic ThreadJob Tests' -Tags 'CI' {
         $job.JobStateInfo.Reason.Message | Should Be "MyError!"
     }
 
-    It 'ThreadJob passes Information stream' {
-
-        $job = Start-ThreadJob -ScriptBlock { Write-Information "My Info"}
-        $null = $job | Receive-Job -Wait -InformationVariable info
-        $info  | Should be "My Info"
-    }
-
     It 'ThreadJob ThrottleLimit and Queue' {
 
         try

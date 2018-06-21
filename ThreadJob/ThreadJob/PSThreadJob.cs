@@ -438,9 +438,6 @@ namespace ThreadJob
             this.Debug = _ps.Streams.Debug;
             this.Debug.EnumeratorNeverBlocks = true;
 
-            this.Information = _ps.Streams.Information;
-            this.Information.EnumeratorNeverBlocks = true;
-
             // Create the JobManager job definition and job specification, and add to the JobManager.
             ThreadJobDefinition = new JobDefinition(typeof(ThreadJobSourceAdapter), "", Name);
             Dictionary<string, object> parameterCollection = new Dictionary<string, object>();
