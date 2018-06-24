@@ -53,7 +53,7 @@ Describe 'Basic ThreadJob Tests' -Tags 'CI' {
     }
 
     It 'ThreadJob with ScriptBlock' {
-    
+
         $job = Start-ThreadJob -ScriptBlock { "Hello" }
         $results = $job | Receive-Job -Wait
         $results | Should be "Hello"
@@ -182,6 +182,25 @@ Describe 'Basic ThreadJob Tests' -Tags 'CI' {
         $job.JobStateInfo.Reason.Message | Should Be "MyError!"
     }
 
+    # Information stream is only available since PS v5
+    if ($PSVersionTable.PSVersion -ge '5.0')
+    {
+        It 'ThreadJob passes Information stream' {
+
+            $job = Start-ThreadJob -ScriptBlock { Write-Information "My Info"}
+            $null = $job | Receive-Job -Wait -InformationVariable info
+            $info  | Should be "My Info"
+        }
+
+        It 'ThreadJob does not send Write-Host output to pipeline' {
+
+            $job = Start-ThreadJob -ScriptBlock { Write-Host "My message" }
+            $result = $job | Receive-Job -Wait 6>$null
+            $result.Count  | Should be 0
+            $job | Remove-Job
+        }
+    }
+
     It 'ThreadJob ThrottleLimit and Queue' {
 
         try
@@ -294,6 +313,8 @@ Describe 'Job2 Tests' -Tags 'CI' {
     It 'Verifies StopJob API' {
 
         $job = Start-ThreadJob -ScriptBlock { Start-Sleep -Seconds 60 } -ThrottleLimit 5
+        # Give it a chance to start
+        Start-Sleep -Milliseconds 500
         $job.StopJob($true, "No Reason")
         $job.JobStateInfo.State | Should Be "Stopped"
     }
