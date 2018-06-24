@@ -284,6 +284,7 @@ namespace ThreadJob
         private const string VERBATIM_ARGUMENT = "--%";
 
         private static ThreadJobQueue s_JobQueue;
+        private static bool s_HasInformationStream;
 
         #endregion
 
@@ -306,6 +307,8 @@ namespace ThreadJob
         static ThreadJob()
         {
             s_JobQueue = new ThreadJobQueue(5);
+            // For backwards compatibility
+            s_HasInformationStream = typeof(ThreadJob).GetProperty("Information") != null;
         }
 
         private ThreadJob()
@@ -437,6 +440,12 @@ namespace ThreadJob
 
             this.Debug = _ps.Streams.Debug;
             this.Debug.EnumeratorNeverBlocks = true;
+
+            if (s_HasInformationStream)
+            {
+                this.Information = _ps.Streams.Information;
+                this.Information.EnumeratorNeverBlocks = true;
+            }
 
             // Create the JobManager job definition and job specification, and add to the JobManager.
             ThreadJobDefinition = new JobDefinition(typeof(ThreadJobSourceAdapter), "", Name);
@@ -796,15 +805,6 @@ namespace ThreadJob
         {
             ThreadJobHostUI hostUI = host.UI as ThreadJobHostUI;
             System.Diagnostics.Debug.Assert(hostUI != null, "Host UI cannot be null.");
-
-            hostUI.Output.DataAdded += (sender, dataAddedEventArgs) =>
-            {
-                Collection<PSObject> output = hostUI.Output.ReadAll();
-                foreach (var item in output)
-                {
-                    _output.Add(item);
-                }
-            };
 
             hostUI.Error.DataAdded += (sender, dataAddedEventArgs) =>
                 {
