@@ -12,13 +12,14 @@ using System.Management.Automation;
 using System.Management.Automation.Host;
 using System.Management.Automation.Language;
 using System.Management.Automation.Runspaces;
+using System.Management.Automation.Security;
 using System.Text;
 using System.Threading;
 
 namespace ThreadJob
 {
     [Cmdlet(VerbsLifecycle.Start, "ThreadJob")]
-    [OutputType(typeof(Job2))]
+    [OutputType(typeof(ThreadJob))]
     public sealed class StartThreadJobCommand : PSCmdlet
     {
         #region Private members
@@ -352,7 +353,12 @@ namespace ThreadJob
 
             // Create Runspace/PowerShell object and state callback.
             // The job script/command will run in a separate thread associated with the Runspace.
-            _rs = RunspaceFactory.CreateRunspace(host);
+            var iss = InitialSessionState.CreateDefault2();
+            if (Environment.OSVersion.Platform.ToString().Equals("Win32NT", StringComparison.OrdinalIgnoreCase))
+            {
+                iss.LanguageMode = (SystemPolicy.GetSystemLockdownPolicy() == SystemEnforcementMode.Enforce) ? PSLanguageMode.ConstrainedLanguage : PSLanguageMode.FullLanguage;
+            }
+            _rs = RunspaceFactory.CreateRunspace(host, iss);
             _ps = PowerShell.Create();
             _ps.Runspace = _rs;
             _ps.InvocationStateChanged += (sender, psStateChanged) =>
