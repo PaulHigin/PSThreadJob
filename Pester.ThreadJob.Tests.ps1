@@ -282,6 +282,12 @@ Describe 'Basic ThreadJob Tests' -Tags 'CI' {
 
         (Get-Job | where PSJobTypeName -eq "ThreadJob").Count | Should Be 0
     }
+
+    It 'ThreadJob jobs should run in FullLanguage mode by default' {
+
+        $result = Start-ThreadJob -ScriptBlock { $ExecutionContext.SessionState.LanguageMode } | Wait-Job | Receive-Job
+        $result | Should Be "FullLanguage"
+    }
 }
 
 Describe 'Job2 Tests' -Tags 'CI' {
