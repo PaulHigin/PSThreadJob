@@ -60,7 +60,6 @@ namespace ThreadJob
 
         [Parameter(ParameterSetName = ScriptBlockParameterSet)]
         [Parameter(ParameterSetName = FilePathParameterSet)]
-        [ValidateNotNullOrEmpty]
         public Object[] ArgumentList { get; set; }
 
         [Parameter(ParameterSetName = ScriptBlockParameterSet)]
