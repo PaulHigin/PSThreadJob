@@ -207,7 +207,7 @@ Describe 'Basic ThreadJob Tests' -Tags 'CI' {
             Get-Job | where PSJobTypeName -eq "ThreadJob" | Remove-Job -Force
         }
 
-        $numThreadJobs = (Get-Job | where PSJobTypeName -eq "ThreadJob").Count
+        $numThreadJobs = @(Get-Job | where PSJobTypeName -eq "ThreadJob").Count
         $numThreadJobs | Should be 0
     }
 
@@ -216,7 +216,7 @@ Describe 'Basic ThreadJob Tests' -Tags 'CI' {
         try
         {
             Get-Job | where PSJobTypeName -eq "ThreadJob" | Remove-Job -Force
-            $rsStartCount = (Get-Runspace).Count
+            $rsStartCount = @(Get-Runspace).Count
 
             # Start four thread jobs with ThrottleLimit set to two
             $Job1 = Start-ThreadJob -ScriptBlock { "Hello 1!" } -ThrottleLimit 5
@@ -229,7 +229,7 @@ Describe 'Basic ThreadJob Tests' -Tags 'CI' {
             # Allow for clean to happen
             Start-Sleep -Seconds 1
 
-            (Get-Runspace).Count | Should Be $rsStartCount
+            @(Get-Runspace).Count | Should Be $rsStartCount
         }
         finally
         {
@@ -241,7 +241,7 @@ Describe 'Basic ThreadJob Tests' -Tags 'CI' {
 
         try {
             Get-Job | where PSJobTypeName -eq "ThreadJob" | Remove-Job -Force
-            $rsStartCount = (Get-Runspace).Count
+            $rsStartCount = @(Get-Runspace).Count
 
             # Start four thread jobs with ThrottleLimit set to two
             $Job1 = Start-ThreadJob -ScriptBlock { Start-Sleep -Seconds 60 } -ThrottleLimit 2
@@ -266,7 +266,7 @@ Describe 'Basic ThreadJob Tests' -Tags 'CI' {
             Get-Job | where PSJobTypeName -eq "ThreadJob" | Remove-Job -Force
         }
 
-        (Get-Runspace).Count | Should Be $rsStartCount
+        @(Get-Runspace).Count | Should Be $rsStartCount
     }
 
     It 'ThreadJob jobs should work with Receive-Job -AutoRemoveJob' {
@@ -280,7 +280,7 @@ Describe 'Basic ThreadJob Tests' -Tags 'CI' {
 
         $null = $job1,$job2,$job3,$job4 | Receive-Job -Wait -AutoRemoveJob
 
-        (Get-Job | where PSJobTypeName -eq "ThreadJob").Count | Should Be 0
+        @(Get-Job | where PSJobTypeName -eq "ThreadJob").Count | Should Be 0
     }
 
     It 'ThreadJob jobs should run in FullLanguage mode by default' {
