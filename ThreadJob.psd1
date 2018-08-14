@@ -8,7 +8,7 @@
 RootModule = '.\ThreadJob.dll'
 
 # Version number of this module.
-ModuleVersion = '1.1.1'
+ModuleVersion = '1.1.2'
 
 # ID used to uniquely identify this module
 GUID = '29955884-f6a6-49ba-a071-a4dc8842697f'
