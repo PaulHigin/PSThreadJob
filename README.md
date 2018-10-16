@@ -47,6 +47,7 @@ TotalSeconds
 ## Installing
 
 You can install this module from [PowerShell Gallery](https://www.powershellgallery.com/packages/ThreadJob/1.1.2) using this command:
+
 ```powershell
 Install-Module -Name ThreadJob -Scope CurrentUser
 ```
