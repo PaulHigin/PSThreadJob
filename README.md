@@ -40,6 +40,13 @@ PS C:\> Measure-Command {1..5 | % {Start-ThreadJob {Sleep 1}} | Wait-Job} | Sele
 
 TotalSeconds
 ------------
-   4.3551805 # jobs creation time > 3.3 sec
-   1.5735008 # jobs creation time < 0.6 sec (5.5 times less)
+   5.7665849 # jobs creation time > 4.7 sec; results may vary
+   1.5735008 # jobs creation time < 0.6 sec (8 times less!)
+```
+
+## Installing
+
+You can install this module from [PowerShell Gallery](https://www.powershellgallery.com/packages/ThreadJob/1.1.2) using this command:
+```powershell
+Install-Module -Name ThreadJob -Scope CurrentUser
 ```
