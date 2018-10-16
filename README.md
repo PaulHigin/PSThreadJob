@@ -11,7 +11,8 @@ This module exports a single cmdlet, Start-ThreadJob, which works similarly to t
 
 Also ThreadJob jobs support a ThrottleLimit parameter to limit the number of running jobs, and thus running threads, at a time. If more jobs are started then they go into a queue and wait until the current number of jobs drops below the throttle limit.
 
-Examples:
+## Examples
+
 ```powershell
 PS C:\> Start-ThreadJob -ScriptBlock { 1..100 | % { sleep 1; "Output $_" } } -ThrottleLimit 2
 PS C:\> Start-ThreadJob -ScriptBlock { 1..100 | % { sleep 1; "Output $_" } }
@@ -24,9 +25,21 @@ Id     Name            PSJobTypeName   State         HasMoreData     Location   
 2      Job2            ThreadJob       Running       True            PowerShell            1..100 | % { sleep 1;...
 3      Job3            ThreadJob       NotStarted    False           PowerShell            1..100 | % { sleep 1;...
 ```
+
 ```powershell
 PS C:\> $job = Start-ThreadJob { Get-Process -id $pid }
 PS C:\> $myProc = Receive-Job $job
 # !!Don't do this.  $myProc is a live object!!
 PS C:\> $myProc.Kill()
+```
+
+```powershell
+# start five background jobs each running 1 second
+PS C:\> Measure-Command {1..5 | % {Start-Job {Sleep 1}} | Wait-Job} | Select TotalSeconds 
+PS C:\> Measure-Command {1..5 | % {Start-ThreadJob {Sleep 1}} | Wait-Job} | Select TotalSeconds
+
+TotalSeconds
+------------
+   4.3551805 # jobs creation time > 3.3 sec
+   1.5735008 # jobs creation time < 0.6 sec (5.5 times less)
 ```
