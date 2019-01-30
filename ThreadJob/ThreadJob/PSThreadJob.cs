@@ -64,7 +64,7 @@ namespace ThreadJob
 
         [Parameter(ParameterSetName = ScriptBlockParameterSet)]
         [Parameter(ParameterSetName = FilePathParameterSet)]
-        [ValidateRange(1, 50)]
+        [ValidateRange(1, 1000000)]
         public int ThrottleLimit { get; set; }
 
         #endregion
