@@ -381,7 +381,7 @@ namespace ThreadJob
                     if (!enforceLockdown && (_initSb != null))
                     {
                         // Even if the script file is trusted, an initialization script cannot be trusted, so we have to enforce
-                        // lock down.
+                        // lock down.  Otherwise untrusted script could be run in FullLanguage mode along with the trusted file script.
                         enforceLockdown = true;
                         lockdownWarning = new WarningRecord(
                             string.Format(
