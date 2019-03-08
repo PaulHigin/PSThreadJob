@@ -369,6 +369,7 @@ namespace ThreadJob
             var iss = InitialSessionState.CreateDefault2();
 
             // Determine session language mode for Windows platforms
+            WarningRecord lockdownWarning = null;
             if (Environment.OSVersion.Platform.ToString().Equals("Win32NT", StringComparison.OrdinalIgnoreCase))
             {
                 bool enforceLockdown = (SystemPolicy.GetSystemLockdownPolicy() == SystemEnforcementMode.Enforce);
@@ -376,6 +377,18 @@ namespace ThreadJob
                 {
                     // If script source is a file, check to see if it is trusted by the lock down policy
                     enforceLockdown = (SystemPolicy.GetLockdownPolicy(_filePath, null) == SystemEnforcementMode.Enforce);
+
+                    if (!enforceLockdown && (_initSb != null))
+                    {
+                        // Even if the script file is trusted, an initialization script cannot be trusted, so we have to enforce
+                        // lock down.
+                        enforceLockdown = true;
+                        lockdownWarning = new WarningRecord(
+                            string.Format(
+                                CultureInfo.InvariantCulture,
+                                Properties.Resources.ResourceManager.GetString("CannotRunTrustedFileInFL"),
+                                _filePath));
+                    }
                 }
 
                 iss.LanguageMode = enforceLockdown ? PSLanguageMode.ConstrainedLanguage : PSLanguageMode.FullLanguage;
@@ -449,6 +462,10 @@ namespace ThreadJob
 
             this.Warning = _ps.Streams.Warning;
             this.Warning.EnumeratorNeverBlocks = true;
+            if (lockdownWarning != null)
+            {
+                this.Warning.Add(lockdownWarning);
+            }
 
             this.Debug = _ps.Streams.Debug;
             this.Debug.EnumeratorNeverBlocks = true;

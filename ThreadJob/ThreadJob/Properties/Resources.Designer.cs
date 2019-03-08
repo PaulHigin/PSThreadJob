@@ -122,5 +122,14 @@ namespace ThreadJob.Properties {
                 return ResourceManager.GetString("UsingVariableNotFound", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Cannot run trusted script file {0} in FullLanguage mode because an initialization script block is included in the job, and the script block is not trusted..
+        /// </summary>
+        internal static string CannotRunTrustedFileInFL{
+            get {
+                return ResourceManager.GetString("CannotRunTrustedFileInFL", resourceCulture);
+            }
+        }
     }
 }

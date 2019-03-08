@@ -199,6 +199,24 @@ try
 
             $results | Should -BeExactly "FullLanguage"
         }
+
+        It "ThreadJob trusted script file *with* untrusted initialization script must run in ConstrainedLanguage mode with system lock down" {
+            try 
+            {
+                $ExecutionContext.SessionState.LanguageMode = "ConstrainedLanguage"
+                Invoke-LanguageModeTestingSupportCmdlet -SetLockdownMode
+
+                $results = Start-ThreadJob -File $scriptTrustedFilePath -InitializationScript { "Hello" } | Wait-Job | Receive-Job 3>&1
+            }
+            finally
+            {
+                Invoke-LanguageModeTestingSupportCmdlet -RevertLockdownMode -EnableFullLanguageMode
+            }
+
+            $results.Count | Should -BeExactly 3 -Because "Includes init script, file script, warning output"
+            $results[0] | Should -BeExactly "Hello" -Because "This is the expected initialization script output"
+            $results[1] | Should -BeExactly "ConstrainedLanguage" -Because "This is the expected script file language mode"
+        }
     }
 }
 finally
