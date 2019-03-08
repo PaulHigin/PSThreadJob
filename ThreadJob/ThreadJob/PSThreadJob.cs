@@ -346,6 +346,20 @@ namespace ThreadJob
 
             this.PSJobTypeName = "ThreadJob";
 
+            // Get script block to run.
+            if (!string.IsNullOrEmpty(_filePath))
+            {
+                _sb = GetScriptBlockFromFile(_filePath, psCmdlet);
+                if (_sb == null)
+                {
+                    throw new InvalidOperationException(Properties.Resources.ResourceManager.GetString("CannotParseScriptFile"));
+                }
+            }
+            else if (_sb == null)
+            {
+                throw new PSArgumentNullException(Properties.Resources.ResourceManager.GetString("NoScriptToRun"));
+            }
+
             // Create host object for thread jobs.
             ThreadJobHost host = new ThreadJobHost();
             HookupHostDataDelegates(host);
@@ -353,10 +367,33 @@ namespace ThreadJob
             // Create Runspace/PowerShell object and state callback.
             // The job script/command will run in a separate thread associated with the Runspace.
             var iss = InitialSessionState.CreateDefault2();
+
+            // Determine session language mode for Windows platforms
+            WarningRecord lockdownWarning = null;
             if (Environment.OSVersion.Platform.ToString().Equals("Win32NT", StringComparison.OrdinalIgnoreCase))
             {
-                iss.LanguageMode = (SystemPolicy.GetSystemLockdownPolicy() == SystemEnforcementMode.Enforce) ? PSLanguageMode.ConstrainedLanguage : PSLanguageMode.FullLanguage;
+                bool enforceLockdown = (SystemPolicy.GetSystemLockdownPolicy() == SystemEnforcementMode.Enforce);
+                if (enforceLockdown && !string.IsNullOrEmpty(_filePath))
+                {
+                    // If script source is a file, check to see if it is trusted by the lock down policy
+                    enforceLockdown = (SystemPolicy.GetLockdownPolicy(_filePath, null) == SystemEnforcementMode.Enforce);
+
+                    if (!enforceLockdown && (_initSb != null))
+                    {
+                        // Even if the script file is trusted, an initialization script cannot be trusted, so we have to enforce
+                        // lock down.  Otherwise untrusted script could be run in FullLanguage mode along with the trusted file script.
+                        enforceLockdown = true;
+                        lockdownWarning = new WarningRecord(
+                            string.Format(
+                                CultureInfo.InvariantCulture,
+                                Properties.Resources.ResourceManager.GetString("CannotRunTrustedFileInFL"),
+                                _filePath));
+                    }
+                }
+
+                iss.LanguageMode = enforceLockdown ? PSLanguageMode.ConstrainedLanguage : PSLanguageMode.FullLanguage;
             }
+
             _rs = RunspaceFactory.CreateRunspace(host, iss);
             _ps = PowerShell.Create();
             _ps.Runspace = _rs;
@@ -394,20 +431,6 @@ namespace ThreadJob
                 }
             };
 
-            // Get script block to run.
-            if (!string.IsNullOrEmpty(_filePath))
-            {
-                _sb = GetScriptBlockFromFile(_filePath, psCmdlet);
-                if (_sb == null)
-                {
-                    throw new InvalidOperationException(Properties.Resources.ResourceManager.GetString("CannotParseScriptFile"));
-                }
-            }
-            else if (_sb == null)
-            {
-                throw new PSArgumentNullException(Properties.Resources.ResourceManager.GetString("NoScriptToRun"));
-            }
-
             // Get any using variables.
             var usingAsts = _sb.Ast.FindAll(ast => ast is UsingExpressionAst, searchNestedScriptBlocks: true).Cast<UsingExpressionAst>();
             if (usingAsts != null &&
@@ -439,6 +462,10 @@ namespace ThreadJob
 
             this.Warning = _ps.Streams.Warning;
             this.Warning.EnumeratorNeverBlocks = true;
+            if (lockdownWarning != null)
+            {
+                this.Warning.Add(lockdownWarning);
+            }
 
             this.Debug = _ps.Streams.Debug;
             this.Debug.EnumeratorNeverBlocks = true;
