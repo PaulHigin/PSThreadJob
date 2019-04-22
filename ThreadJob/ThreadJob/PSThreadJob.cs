@@ -67,6 +67,10 @@ namespace ThreadJob
         [ValidateRange(1, 1000000)]
         public int ThrottleLimit { get; set; }
 
+        [Parameter(ParameterSetName = ScriptBlockParameterSet)]
+        [Parameter(ParameterSetName = FilePathParameterSet)]
+        public PSHost StreamingHost { get; set; }
+
         #endregion
 
         #region Overrides
@@ -91,8 +95,17 @@ namespace ThreadJob
 
             if (!_processFirstRecord)
             {
-                _threadJob = new ThreadJob(Name, _command, ScriptBlock, FilePath, InitializationScript, ArgumentList,
-                                           InputObject, this);
+                if (StreamingHost != null)
+                {
+                    _threadJob = new ThreadJob(Name, _command, ScriptBlock, FilePath, InitializationScript, ArgumentList,
+                                               InputObject, this, StreamingHost);
+                }
+                else
+                {
+                    _threadJob = new ThreadJob(Name, _command, ScriptBlock, FilePath, InitializationScript, ArgumentList,
+                                               InputObject, this);
+                }
+
                 ThreadJob.StartJob(_threadJob, ThrottleLimit);
                 WriteObject(_threadJob);
 
@@ -280,6 +293,7 @@ namespace ThreadJob
         private PowerShell _ps;
         private PSDataCollection<PSObject> _output;
         private bool _runningInitScript;
+        private PSHost _streamingHost;
 
         private const string VERBATIM_ARGUMENT = "--%";
 
@@ -310,6 +324,35 @@ namespace ThreadJob
 
         private ThreadJob()
         { }
+
+        /// <summary>
+        /// Constructor.
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="command"></param>
+        /// <param name="sb"></param>
+        /// <param name="filePath"></param>
+        /// <param name="initSb"></param>
+        /// <param name="argumentList"></param>
+        /// <param name="inputObject"></param>
+        /// <param name="psCmdlet"></param>
+        /// <param name="streamingHost"></param>
+        public ThreadJob(
+            string name,
+            string command,
+            ScriptBlock sb,
+            string filePath,
+            ScriptBlock initSb,
+            object[] argumentList,
+            PSObject inputObject,
+            PSCmdlet psCmdlet,
+            PSHost streamingHost)
+            : this(name, command, sb, filePath, initSb, argumentList, inputObject, psCmdlet)
+        {
+            if (streamingHost == null) { throw new InvalidEnumArgumentException("streamingHost"); }
+            _streamingHost = streamingHost;
+            SetupHostDataStreaming();
+        }
 
         /// <summary>
         /// Constructor.
@@ -436,12 +479,14 @@ namespace ThreadJob
             if (usingAsts != null &&
                 usingAsts.FirstOrDefault() != null)
             {
+                var psVersion = GetPSVersion();
+
                 // Get using variables as an array or dictionary, depending on PowerShell version.
-                if (psCmdlet.Host.Version.Major >= 5)
+                if (psVersion.Major >= 5)
                 {
                     _usingValuesMap = GetUsingValuesAsDictionary(usingAsts, psCmdlet);
                 }
-                else if (psCmdlet.Host.Version.Major == 3 || psCmdlet.Host.Version.Major == 4)
+                else if (psVersion.Major == 3 || psVersion.Major == 4)
                 {
                     _usingValuesArray = GetUsingValuesAsArray(usingAsts, psCmdlet);
                 }
@@ -469,6 +514,9 @@ namespace ThreadJob
 
             this.Debug = _ps.Streams.Debug;
             this.Debug.EnumeratorNeverBlocks = true;
+
+            this.Information = _ps.Streams.Information;
+            this.Information.EnumeratorNeverBlocks = true;
 
             // Create the JobManager job definition and job specification, and add to the JobManager.
             ThreadJobDefinition = new JobDefinition(typeof(ThreadJobSourceAdapter), "", Name);
@@ -848,6 +896,37 @@ namespace ThreadJob
                 };
         }
 
+        private void SetupHostDataStreaming()
+        {
+            // Stream informational data to provided local host.
+            if (_streamingHost != null && _streamingHost.UI != null)
+            {
+                this.Verbose.DataAdded += (sender, args) =>
+                {
+                    var record = (VerboseRecord)((PSDataCollection<VerboseRecord>)sender)[args.Index];
+                    _streamingHost.UI.WriteVerboseLine(record.Message);
+                };
+
+                this.Warning.DataAdded += (sender, args) =>
+                {
+                    var record = (WarningRecord)((PSDataCollection<WarningRecord>)sender)[args.Index];
+                    _streamingHost.UI.WriteWarningLine(record.Message);
+                };
+
+                this.Debug.DataAdded += (sender, args) =>
+                {
+                    var record = (DebugRecord)((PSDataCollection<DebugRecord>)sender)[args.Index];
+                    _streamingHost.UI.WriteDebugLine(record.Message);
+                };
+
+                this.Information.DataAdded += (sender, args) =>
+                {
+                    var record = (InformationRecord)((PSDataCollection<InformationRecord>)sender)[args.Index];
+                    _streamingHost.UI.WriteInformation(record);
+                };
+            }
+        }
+
         private void SetJobState(JobState jobState, Exception reason, bool disposeRunspace = false)
         {
             base.SetJobState(jobState, reason);
@@ -914,6 +993,28 @@ namespace ThreadJob
             }
 
             return Convert.ToBase64String(Encoding.Unicode.GetBytes(usingAstText.ToCharArray()));
+        }
+
+        private static Version GetPSVersion()
+        {
+            using (var ps = PowerShell.Create())
+            {
+                try
+                {
+                    var results = ps.AddScript("$PSVersionTable").Invoke<System.Collections.Hashtable>();
+                    if (results.Count == 1)
+                    {
+                        var versionString = (results[0]["PSVersion"]).ToString();
+                        if (Version.TryParse(versionString, out Version version))
+                        {
+                            return version;
+                        }
+                    }
+                }
+                catch (Exception) { }
+            }
+
+            return new Version(3, 0);
         }
 
         #endregion
