@@ -69,7 +69,6 @@ namespace ThreadJob
 
         [Parameter(ParameterSetName = ScriptBlockParameterSet)]
         [Parameter(ParameterSetName = FilePathParameterSet)]
-        [ValidateNotNull()]
         public PSHost StreamingHost { get; set; }
 
         #endregion
