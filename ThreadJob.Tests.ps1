@@ -236,6 +236,19 @@ Describe 'Basic ThreadJob Tests' -Tags 'CI' {
         $job.Debug | Should -Be "DebugOut"
     }
 
+    It 'ThreadJob and Information stream output' {
+
+        $job = Start-ThreadJob -ScriptBlock { Write-Information "InformationOutput" -InformationAction Continue } | Wait-Job
+        $job.Information | Should -Be "InformationOutput"
+    }
+
+    It 'ThreadJob and Host stream output' {
+
+        # Host stream data is automatically added to the Information stream
+        $job = Start-ThreadJob -ScriptBlock { Write-Host "HostOutput" } | Wait-Job
+        $job.Information | Should -Be "HostOutput"
+    }
+
     It 'ThreadJob ThrottleLimit and Queue' {
 
         try

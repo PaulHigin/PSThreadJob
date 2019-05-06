@@ -336,7 +336,6 @@ namespace ThreadJob
         /// <param name="argumentList"></param>
         /// <param name="inputObject"></param>
         /// <param name="psCmdlet"></param>
-        /// <param name="streamingHost"></param>
         public ThreadJob(
             string name,
             string command,
@@ -345,13 +344,9 @@ namespace ThreadJob
             ScriptBlock initSb,
             object[] argumentList,
             PSObject inputObject,
-            PSCmdlet psCmdlet,
-            PSHost streamingHost)
-            : this(name, command, sb, filePath, initSb, argumentList, inputObject, psCmdlet)
+            PSCmdlet psCmdlet)
+            : this(name, command, sb, filePath, initSb, argumentList, inputObject, psCmdlet, null)
         {
-            if (streamingHost == null) { throw new InvalidEnumArgumentException("streamingHost"); }
-            _streamingHost = streamingHost;
-            SetupHostDataStreaming();
         }
 
         /// <summary>
@@ -365,6 +360,7 @@ namespace ThreadJob
         /// <param name="argumentList"></param>
         /// <param name="inputObject"></param>
         /// <param name="psCmdlet"></param>
+        /// <param name="streamingHost"></param>
         public ThreadJob(
             string name,
             string command,
@@ -373,7 +369,8 @@ namespace ThreadJob
             ScriptBlock initSb,
             object[] argumentList,
             PSObject inputObject,
-            PSCmdlet psCmdlet)
+            PSCmdlet psCmdlet,
+            PSHost streamingHost)
             : base(command, name)
         {
             _sb = sb;
@@ -386,6 +383,7 @@ namespace ThreadJob
                 _input.Add(inputObject);
             }
             _output = new PSDataCollection<PSObject>();
+            _streamingHost = streamingHost;
 
             this.PSJobTypeName = "ThreadJob";
 
@@ -402,10 +400,6 @@ namespace ThreadJob
             {
                 throw new PSArgumentNullException(Properties.Resources.ResourceManager.GetString("NoScriptToRun"));
             }
-
-            // Create host object for thread jobs.
-            ThreadJobHost host = new ThreadJobHost();
-            HookupHostDataDelegates(host);
 
             // Create Runspace/PowerShell object and state callback.
             // The job script/command will run in a separate thread associated with the Runspace.
@@ -437,7 +431,14 @@ namespace ThreadJob
                 iss.LanguageMode = enforceLockdown ? PSLanguageMode.ConstrainedLanguage : PSLanguageMode.FullLanguage;
             }
 
-            _rs = RunspaceFactory.CreateRunspace(host, iss);
+            if (_streamingHost != null)
+            {
+                _rs = RunspaceFactory.CreateRunspace(_streamingHost, iss);
+            }
+            else
+            {
+                _rs = RunspaceFactory.CreateRunspace(iss);
+            }
             _ps = PowerShell.Create();
             _ps.Runspace = _rs;
             _ps.InvocationStateChanged += (sender, psStateChanged) =>
@@ -872,61 +873,6 @@ namespace ThreadJob
             return null;
         }
 
-        private void HookupHostDataDelegates(ThreadJobHost host)
-        {
-            ThreadJobHostUI hostUI = host.UI as ThreadJobHostUI;
-            System.Diagnostics.Debug.Assert(hostUI != null, "Host UI cannot be null.");
-
-            hostUI.Output.DataAdded += (sender, dataAddedEventArgs) =>
-            {
-                Collection<PSObject> output = hostUI.Output.ReadAll();
-                foreach (var item in output)
-                {
-                    _output.Add(item);
-                }
-            };
-
-            hostUI.Error.DataAdded += (sender, dataAddedEventArgs) =>
-                {
-                    Collection<ErrorRecord> error = hostUI.Error.ReadAll();
-                    foreach (var item in error)
-                    {
-                        Error.Add(item);
-                    }
-                };
-        }
-
-        private void SetupHostDataStreaming()
-        {
-            // Stream informational data to provided local host.
-            if (_streamingHost != null && _streamingHost.UI != null)
-            {
-                this.Verbose.DataAdded += (sender, args) =>
-                {
-                    var record = (VerboseRecord)((PSDataCollection<VerboseRecord>)sender)[args.Index];
-                    _streamingHost.UI.WriteVerboseLine(record.Message);
-                };
-
-                this.Warning.DataAdded += (sender, args) =>
-                {
-                    var record = (WarningRecord)((PSDataCollection<WarningRecord>)sender)[args.Index];
-                    _streamingHost.UI.WriteWarningLine(record.Message);
-                };
-
-                this.Debug.DataAdded += (sender, args) =>
-                {
-                    var record = (DebugRecord)((PSDataCollection<DebugRecord>)sender)[args.Index];
-                    _streamingHost.UI.WriteDebugLine(record.Message);
-                };
-
-                this.Information.DataAdded += (sender, args) =>
-                {
-                    var record = (InformationRecord)((PSDataCollection<InformationRecord>)sender)[args.Index];
-                    _streamingHost.UI.WriteInformation(record);
-                };
-            }
-        }
-
         private void SetJobState(JobState jobState, Exception reason, bool disposeRunspace = false)
         {
             base.SetJobState(jobState, reason);
@@ -1015,335 +961,6 @@ namespace ThreadJob
             }
 
             return new Version(3, 0);
-        }
-
-        #endregion
-    }
-
-    /// <summary>
-    /// ThreadJobHostUI
-    /// </summary>
-    internal sealed class ThreadJobHostUI : PSHostUserInterface
-    {
-        #region Private members
-
-        private PSDataCollection<PSObject> _output;
-        private PSDataCollection<ErrorRecord> _error;
-
-        #endregion
-
-        #region Public properties
-
-        /// <summary>
-        /// Output
-        /// </summary>
-        public PSDataCollection<PSObject> Output
-        {
-            get { return _output; }
-        }
-
-        /// <summary>
-        /// Error
-        /// </summary>
-        public PSDataCollection<ErrorRecord> Error
-        {
-            get { return _error; }
-        }
-
-        #endregion
-
-        #region Constructors
-
-        /// <summary>
-        /// Constructor
-        /// </summary>
-        public ThreadJobHostUI()
-        {
-            _output = new PSDataCollection<PSObject>();
-            _error = new PSDataCollection<ErrorRecord>();
-        }
-
-        #endregion
-
-        #region Public overrides
-
-        /// <summary>
-        /// RawUI
-        /// </summary>
-        public override PSHostRawUserInterface RawUI
-        {
-            get { return null; }
-        }
-
-        /// <summary>
-        /// Prompt
-        /// </summary>
-        /// <param name="caption"></param>
-        /// <param name="message"></param>
-        /// <param name="descriptions"></param>
-        /// <returns></returns>
-        public override Dictionary<string, PSObject> Prompt(string caption, string message, Collection<FieldDescription> descriptions)
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// PromptForChoice
-        /// </summary>
-        /// <param name="caption"></param>
-        /// <param name="message"></param>
-        /// <param name="choices"></param>
-        /// <param name="defaultChoice"></param>
-        /// <returns></returns>
-        public override int PromptForChoice(string caption, string message, Collection<ChoiceDescription> choices, int defaultChoice)
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// PromptForCredential
-        /// </summary>
-        /// <param name="caption"></param>
-        /// <param name="message"></param>
-        /// <param name="userName"></param>
-        /// <param name="targetName"></param>
-        /// <returns></returns>
-        public override PSCredential PromptForCredential(string caption, string message, string userName, string targetName)
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// PromptForCredential
-        /// </summary>
-        /// <param name="caption"></param>
-        /// <param name="message"></param>
-        /// <param name="userName"></param>
-        /// <param name="targetName"></param>
-        /// <param name="allowedCredentialTypes"></param>
-        /// <param name="options"></param>
-        /// <returns></returns>
-        public override PSCredential PromptForCredential(string caption, string message, string userName, string targetName, PSCredentialTypes allowedCredentialTypes, PSCredentialUIOptions options)
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// ReadLine
-        /// </summary>
-        /// <returns></returns>
-        public override string ReadLine()
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// ReadLineAsSecureString
-        /// </summary>
-        /// <returns></returns>
-        public override System.Security.SecureString ReadLineAsSecureString()
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// Write
-        /// </summary>
-        /// <param name="foregroundColor"></param>
-        /// <param name="backgroundColor"></param>
-        /// <param name="value"></param>
-        public override void Write(ConsoleColor foregroundColor, ConsoleColor backgroundColor, string value)
-        {
-            Write(value);
-        }
-
-        /// <summary>
-        /// Write
-        /// </summary>
-        /// <param name="value"></param>
-        public override void Write(string value)
-        {
-            _output.Add(
-                new PSObject(value));
-        }
-
-        /// <summary>
-        /// WriteErrorLine
-        /// </summary>
-        /// <param name="value"></param>
-        public override void WriteErrorLine(string value)
-        {
-            _error.Add(
-                new ErrorRecord(new RuntimeException(value), null, ErrorCategory.NotSpecified, null));
-        }
-
-        /// <summary>
-        /// WriteLine
-        /// </summary>
-        /// <param name="value"></param>
-        public override void WriteLine(string value)
-        {
-            _output.Add(
-                new PSObject(value + "\r"));
-        }
-
-        /// <summary>
-        /// WriteProgress
-        /// </summary>
-        /// <param name="sourceId"></param>
-        /// <param name="record"></param>
-        public override void WriteProgress(long sourceId, ProgressRecord record)
-        {
-            // NOOP since this is taken care of within "InternalHostUserInterface.cs"
-        }
-
-        /// <summary>
-        /// WriteVerboseLine
-        /// </summary>
-        /// <param name="message"></param>
-        public override void WriteVerboseLine(string message)
-        {
-            // NOOP since this is taken care of within "InternalHostUserInterface.cs"
-        }
-
-        /// <summary>
-        /// WriteWarningLine
-        /// </summary>
-        /// <param name="message"></param>
-        public override void WriteWarningLine(string message)
-        {
-            // NOOP since this is taken care of within "InternalHostUserInterface.cs"
-        }
-
-        /// <summary>
-        /// WriteDebugLine
-        /// </summary>
-        /// <param name="message"></param>
-        public override void WriteDebugLine(string message)
-        {
-            // NOOP since this is taken care of within "InternalHostUserInterface.cs"
-        }
-
-        #endregion
-    }
-
-    /// <summary>
-    /// ThreadJobHost
-    /// </summary>
-    internal sealed class ThreadJobHost : PSHost
-    {
-        #region Private members
-
-        private const string _name = "ThreadJobHost";
-        private readonly Version _version;
-        private readonly Guid _instanceId;
-        private ThreadJobHostUI _ui;
-
-        #endregion
-
-        #region Constructors
-
-        /// <summary>
-        /// Constructor
-        /// </summary>
-        public ThreadJobHost()
-        {
-            _version = new Version(1, 0);
-            _instanceId = Guid.NewGuid();
-            _ui = new ThreadJobHostUI();
-        }
-
-        #endregion
-
-        #region Public overrides
-
-        /// <summary>
-        /// Name
-        /// </summary>
-        public override string Name
-        {
-            get { return _name; }
-        }
-
-        /// <summary>
-        /// Version
-        /// </summary>
-        public override Version Version
-        {
-            get { return _version; }
-        }
-
-        /// <summary>
-        /// InstanceId
-        /// </summary>
-        public override Guid InstanceId
-        {
-            get { return _instanceId; }
-        }
-
-        /// <summary>
-        /// UI
-        /// </summary>
-        public override PSHostUserInterface UI
-        {
-            get { return _ui; }
-        }
-
-        /// <summary>
-        /// CurrentCulture
-        /// </summary>
-        public override System.Globalization.CultureInfo CurrentCulture
-        {
-            get { return System.Globalization.CultureInfo.CurrentCulture; }
-        }
-
-        /// <summary>
-        /// CurrentUICulture
-        /// </summary>
-        public override System.Globalization.CultureInfo CurrentUICulture
-        {
-            get { return System.Globalization.CultureInfo.CurrentUICulture; }
-        }
-
-        /// <summary>
-        /// SetShouldExit
-        /// </summary>
-        /// <param name="exitCode"></param>
-        public override void SetShouldExit(int exitCode)
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// EnterNestedPrompt
-        /// </summary>
-        public override void EnterNestedPrompt()
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// ExitNestedPrompt
-        /// </summary>
-        public override void ExitNestedPrompt()
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// NotifyBeginApplication
-        /// </summary>
-        public override void NotifyBeginApplication()
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// NotifyEndApplication
-        /// </summary>
-        public override void NotifyEndApplication()
-        {
-            throw new NotImplementedException();
         }
 
         #endregion
