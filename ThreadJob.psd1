@@ -8,7 +8,7 @@
 RootModule = '.\ThreadJob.dll'
 
 # Version number of this module.
-ModuleVersion = '1.1.3'
+ModuleVersion = '2.0.0'
 
 # ID used to uniquely identify this module
 GUID = '29955884-f6a6-49ba-a071-a4dc8842697f'
@@ -41,10 +41,13 @@ number of jobs drops below the throttle limit.
 
 Added Runspace cleanup.
 Added Using variable expression support.
+Added StreamingHost parameter to stream host data writes to a provided host object.
+Added Information stream handling.
+Bumped version to 2.0.0, and now only support PowerShell version 5.1 and higher.
 "
 
 # Minimum version of the Windows PowerShell engine required by this module
-PowerShellVersion = '3.0'
+PowerShellVersion = '5.1'
 
 # Cmdlets to export from this module
 CmdletsToExport = 'Start-ThreadJob'

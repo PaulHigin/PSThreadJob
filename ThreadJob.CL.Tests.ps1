@@ -100,6 +100,10 @@ try
 '@ | Out-File -FilePath $scriptUntrustedFilePath
         }
 
+        AfterAll {
+            Get-Job | Where-Object PSJobTypeName -eq "ThreadJob" | Remove-Job -Force
+        }
+
         It "ThreadJob script must run in ConstrainedLanguage mode with system lock down" {
 
             try
