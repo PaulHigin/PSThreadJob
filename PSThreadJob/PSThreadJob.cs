@@ -16,7 +16,7 @@ using System.Management.Automation.Security;
 using System.Text;
 using System.Threading;
 
-namespace ThreadJob
+namespace PSThreadJob
 {
     [Cmdlet(VerbsLifecycle.Start, "ThreadJob")]
     [OutputType(typeof(ThreadJob))]
@@ -393,12 +393,12 @@ namespace ThreadJob
                 _sb = GetScriptBlockFromFile(_filePath, psCmdlet);
                 if (_sb == null)
                 {
-                    throw new InvalidOperationException(Properties.Resources.ResourceManager.GetString("CannotParseScriptFile"));
+                    throw new InvalidOperationException(Properties.Resources.CannotParseScriptFile);
                 }
             }
             else if (_sb == null)
             {
-                throw new PSArgumentNullException(Properties.Resources.ResourceManager.GetString("NoScriptToRun"));
+                throw new PSArgumentNullException(Properties.Resources.NoScriptToRun);
             }
 
             // Create Runspace/PowerShell object and state callback.
@@ -423,7 +423,7 @@ namespace ThreadJob
                         lockdownWarning = new WarningRecord(
                             string.Format(
                                 CultureInfo.InvariantCulture,
-                                Properties.Resources.ResourceManager.GetString("CannotRunTrustedFileInFL"),
+                                Properties.Resources.CannotRunTrustedFileInFL,
                                 _filePath));
                     }
                 }
@@ -539,7 +539,7 @@ namespace ThreadJob
         {
             if (this.JobStateInfo.State != JobState.NotStarted)
             {
-                throw new Exception(Properties.Resources.ResourceManager.GetString("CannotStartJob"));
+                throw new Exception(Properties.Resources.CannotStartJob);
             }
 
             // Initialize Runspace state
@@ -842,12 +842,12 @@ namespace ThreadJob
         {
             if (WildcardPattern.ContainsWildcardCharacters(filePath))
             {
-                throw new ArgumentException(Properties.Resources.ResourceManager.GetString("FilePathWildcards"));
+                throw new ArgumentException(Properties.Resources.FilePathWildcards);
             }
 
             if (!filePath.EndsWith(".ps1", StringComparison.OrdinalIgnoreCase))
             {
-                throw new ArgumentException(Properties.Resources.ResourceManager.GetString("FilePathExt"));
+                throw new ArgumentException(Properties.Resources.FilePathExt);
             }
 
             ProviderInfo provider = null;
@@ -896,8 +896,8 @@ namespace ThreadJob
                 var varAst = usingAst.SubExpression as VariableExpressionAst;
                 if (varAst == null)
                 {
-                    var msg = string.Format(CultureInfo.InvariantCulture,
-                        Properties.Resources.ResourceManager.GetString("UsingNotVariableExpression"), 
+                    var msg = string.Format(CultureInfo.InvariantCulture, 
+                        Properties.Resources.UsingNotVariableExpression,
                         new object[] { usingAst.Extent.Text });
                     throw new PSInvalidOperationException(msg);
                 }
@@ -914,7 +914,7 @@ namespace ThreadJob
                 catch (Exception ex)
                 {
                     var msg = string.Format(CultureInfo.InvariantCulture,
-                        Properties.Resources.ResourceManager.GetString("UsingVariableNotFound"), 
+                        Properties.Resources.UsingVariableNotFound, 
                         new object[] { usingAst.Extent.Text });
                     throw new PSInvalidOperationException(msg, ex);
                 }

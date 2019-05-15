@@ -5,13 +5,13 @@
 @{
 
 # Script module or binary module file associated with this manifest.
-RootModule = '.\ThreadJob.dll'
+RootModule = '.\Microsoft.PowerShell.PSThreadJob.dll'
 
 # Version number of this module.
 ModuleVersion = '2.0.0'
 
 # ID used to uniquely identify this module
-GUID = '29955884-f6a6-49ba-a071-a4dc8842697f'
+GUID = 'c28d8b9b-75c0-4229-bb43-b60218c47bef'
 
 Author = 'Microsoft Corporation'
 CompanyName = 'Microsoft Corporation'
