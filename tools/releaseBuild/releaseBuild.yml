@@ -10,6 +10,10 @@ variables:
   POWERSHELL_TELEMETRY_OPTOUT: 1
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
 
+# TODO: Add compliance.  See Aditya or Travis
+# BinSkim, ApiScan, CredScan, PoliCheck, AntiMalware
+# TSA upload
+
 # Set AzDevOps Agent to clean the machine after the end of the build
 resources:
 - repo: self
@@ -42,10 +46,10 @@ jobs:
       $(Build.SourcesDirectory)\build.ps1 -Bootstrap
       $(Build.SourcesDirectory)\build.ps1 -Configuration Release -Framework net461
       # Set target folder paths
-      $vstsCommandString = "vso[task.setvariable variable=PSReadLine]$(Build.SourcesDirectory)\bin\Release\PSReadLine"
+      $vstsCommandString = "vso[task.setvariable variable=PSThreadJob]$(Build.SourcesDirectory)\PSThreadJob\bin\release\net461"
       Write-Host "sending " + $vstsCommandString
       Write-Host "##$vstsCommandString"
-      $vstsCommandString = "vso[task.setvariable variable=Signed]$(Build.SourcesDirectory)\bin\Release\Signed"
+      $vstsCommandString = "vso[task.setvariable variable=Signed]$(Build.SourcesDirectory)\PSThreadJob\bin\release\Signed"
       Write-Host "sending " + $vstsCommandString
       Write-Host "##$vstsCommandString"
     displayName: Bootstrap & Build
@@ -56,8 +60,8 @@ jobs:
     env:
       SYSTEM_ACCESSTOKEN: $(System.AccessToken)
     inputs:
-      signConfigXml: '$(Build.SourcesDirectory)\.vsts-ci\sign-module-files.xml'
-      inPathRoot: '$(PSReadLine)'
+      signConfigXml: '$(Build.SourcesDirectory)\tools\releaseBuild\sign-module-files.xml'
+      inPathRoot: '$(PSThreadJob)'
       outPathRoot: '$(Signed)'
       binVersion: Production
       binVersionOverride: ''
@@ -66,12 +70,12 @@ jobs:
   - pwsh: |
       # Show the signed files
       Get-ChildItem -Path $(Signed)
-      Copy-Item -Path $(Signed)\* -Destination $(PSReadLine) -Force
+      Copy-Item -Path $(Signed)\* -Destination $(PSThreadJob) -Force
     displayName: 'Replace unsigned files with signed ones'
 
   # Create catalog file from the signed modules files
   - pwsh: |
-      New-FileCatalog -CatalogFilePath $(PSReadLine)\PSReadLine.cat -Path $(PSReadLine) -CatalogVersion 2.0 | `
+      New-FileCatalog -CatalogFilePath $(PSThreadJob)\PSThreadJob.cat -Path $(PSThreadJob) -CatalogVersion 2.0 | `
           ForEach-Object -MemberName FullName
     displayName: 'Create catalog file'
 
@@ -81,8 +85,8 @@ jobs:
     env:
       SYSTEM_ACCESSTOKEN: $(System.AccessToken)
     inputs:
-      signConfigXml: '$(Build.SourcesDirectory)\.vsts-ci\sign-catalog.xml'
-      inPathRoot: '$(PSReadLine)'
+      signConfigXml: '$(Build.SourcesDirectory)\tools\releaseBuild\sign-catalog.xml'
+      inPathRoot: '$(PSThreadJob)'
       outPathRoot: '$(Signed)'
       binVersion: Production
       binVersionOverride: ''
@@ -91,14 +95,14 @@ jobs:
   - pwsh: |
       # Show the signed files
       Get-ChildItem -Path $(Signed)
-      Copy-Item -Path $(Signed)\PSReadLine.cat -Destination $(PSReadLine) -Force
+      Copy-Item -Path $(Signed)\PSThreadJob.cat -Destination $(PSThreadJob) -Force
     displayName: 'Replace catalog file with the signed one'
 
   # Verify the signatures
   - pwsh: |
       $HasInvalidFiles = $false
       $WrongCert = @{}
-      Get-ChildItem -Path $(PSReadLine) -Recurse -Include "*.dll","*.ps*1*","*.cat" | `
+      Get-ChildItem -Path $(PSThreadJob) -Recurse -Include "*.dll","*.ps*1*","*.cat" | `
           Get-AuthenticodeSignature | ForEach-Object {
               $_ | Select-Object Path, Status
               if ($_.Status -ne 'Valid') { $HasInvalidFiles = $true }
@@ -115,12 +119,12 @@ jobs:
     displayName: 'Verify the signed files'
 
   - pwsh: |
-      $CatInfo = Test-FileCatalog -Path $(PSReadLine) -CatalogFilePath $(PSReadLine)\PSReadLine.cat -Detailed
+      $CatInfo = Test-FileCatalog -Path $(PSThreadJob) -CatalogFilePath $(PSThreadJob)\PSThreadJob.cat -Detailed
       $CatInfo | Format-List
       if ($CatInfo.Status -ne "Valid") { throw "Catalog file is invalid." }
     displayName: 'Verify the catalog file'
 
   - pwsh: |
-      Get-ChildItem -Path $(PSReadLine)
-      Write-Host "##vso[artifact.upload containerfolder=PSReadLine;artifactname=PSReadLine]$(PSReadLine)"
+      Get-ChildItem -Path $(PSThreadJob)
+      Write-Host "##vso[artifact.upload containerfolder=PSThreadJob;artifactname=PSThreadJob]$(PSThreadJob)"
     displayName: 'Upload module artifacts'

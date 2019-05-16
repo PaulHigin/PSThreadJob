@@ -79,7 +79,12 @@ function Invoke-Build
     $sourcePath = Join-Path $PSScriptRoot PSThreadJob
     Push-Location $sourcePath
     try {
-        dotnet publish --configuration $Configuration --framework $Framework
+        dotnet publish --configuration $Configuration --framework $Framework --output bin
+
+        # Copy module psd1 file for signing
+        $psd1FilePath = Join-Path $sourcePath PSThreadJob.psd1
+        $destPath = Join-Path $sourcePath "bin\$Release\$Framework"
+        Copy-Item -Path $psd1FilePath -Destination $destPath
     }
     finally {
         Pop-Location
