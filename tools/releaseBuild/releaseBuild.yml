@@ -51,16 +51,16 @@ jobs:
     displayName: Bootstrap & Build
 
   # Sign the module files
-  - task: PkgESCodeSign@10
-    displayName: 'CodeSign - module artifacts'
-    env:
-      SYSTEM_ACCESSTOKEN: $(System.AccessToken)
-    inputs:
-      signConfigXml: '$(Build.SourcesDirectory)\tools\releaseBuild\sign-module-files.xml'
-      inPathRoot: '$(PSThreadJob)'
-      outPathRoot: '$(Signed)'
-      binVersion: Production
-      binVersionOverride: ''
+#  - task: PkgESCodeSign@10
+#    displayName: 'CodeSign - module artifacts'
+#    env:
+#      SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+#    inputs:
+#      signConfigXml: '$(Build.SourcesDirectory)\tools\releaseBuild\sign-module-files.xml'
+#      inPathRoot: '$(PSThreadJob)'
+#      outPathRoot: '$(Signed)'
+#      binVersion: Production
+#      binVersionOverride: ''
 
   # Replace the *.psm1, *.ps1, *.psd1, *.dll files with the signed ones
   - pwsh: |
@@ -76,16 +76,16 @@ jobs:
     displayName: 'Create catalog file'
 
   # Sign the catalog file
-  - task: PkgESCodeSign@10
-    displayName: 'CodeSign - catalog file'
-    env:
-      SYSTEM_ACCESSTOKEN: $(System.AccessToken)
-    inputs:
-      signConfigXml: '$(Build.SourcesDirectory)\tools\releaseBuild\sign-catalog.xml'
-      inPathRoot: '$(PSThreadJob)'
-      outPathRoot: '$(Signed)'
-      binVersion: Production
-      binVersionOverride: ''
+#  - task: PkgESCodeSign@10
+#    displayName: 'CodeSign - catalog file'
+#    env:
+#      SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+#    inputs:
+#      signConfigXml: '$(Build.SourcesDirectory)\tools\releaseBuild\sign-catalog.xml'
+#      inPathRoot: '$(PSThreadJob)'
+#      outPathRoot: '$(Signed)'
+#      binVersion: Production
+#      binVersionOverride: ''
 
   # Copy the signed catalog file over
   - pwsh: |
