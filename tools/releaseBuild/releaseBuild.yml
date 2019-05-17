@@ -26,18 +26,18 @@ jobs:
     clean: true
     persistCredentials: true
 
-  - task: PkgESSetupBuild@10
-    displayName: 'Initialize build'
-    inputs:
-      # Do not create a release share.
-      # Enabling this will cause failures!
-      useDfs: false
-      productName: PSThreadJob
-      # Add branch name to build name (only for non-master)
-      branchVersion: true
-      disableWorkspace: true
-      disableBuildTools: true
-      disableNugetPack: true
+#  - task: PkgESSetupBuild@10
+#    displayName: 'Initialize build'
+#    inputs:
+#      # Do not create a release share.
+#      # Enabling this will cause failures!
+#      useDfs: false
+#      productName: PSThreadJob
+#      # Add branch name to build name (only for non-master)
+#      branchVersion: true
+#      disableWorkspace: true
+#      disableBuildTools: true
+#      disableNugetPack: true
 
   - pwsh: |
       $(Build.SourcesDirectory)\build.ps1 -Bootstrap
