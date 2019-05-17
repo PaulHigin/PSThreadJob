@@ -10,10 +10,6 @@ variables:
   POWERSHELL_TELEMETRY_OPTOUT: 1
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
 
-# TODO: Add compliance.  See Aditya or Travis
-# BinSkim, ApiScan, CredScan, PoliCheck, AntiMalware
-# TSA upload
-
 # Set AzDevOps Agent to clean the machine after the end of the build
 resources:
 - repo: self
@@ -46,7 +42,7 @@ jobs:
       $(Build.SourcesDirectory)\build.ps1 -Bootstrap
       $(Build.SourcesDirectory)\build.ps1 -Configuration Release -Framework net461
       # Set target folder paths
-      $vstsCommandString = "vso[task.setvariable variable=PSThreadJob]$(Build.SourcesDirectory)\PSThreadJob\bin\release\net461"
+      $vstsCommandString = "vso[task.setvariable variable=PSThreadJob]$(Build.SourcesDirectory)\PSThreadJob\bin\release\PSThreadJob"
       Write-Host "sending " + $vstsCommandString
       Write-Host "##$vstsCommandString"
       $vstsCommandString = "vso[task.setvariable variable=Signed]$(Build.SourcesDirectory)\PSThreadJob\bin\release\Signed"
@@ -128,3 +124,9 @@ jobs:
       Get-ChildItem -Path $(PSThreadJob)
       Write-Host "##vso[artifact.upload containerfolder=PSThreadJob;artifactname=PSThreadJob]$(PSThreadJob)"
     displayName: 'Upload module artifacts'
+
+# TODO: Implement
+#- template: templates/compliance.yml
+#  parameters:
+#    parentJobs:
+#      - build_windows

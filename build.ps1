@@ -79,12 +79,22 @@ function Invoke-Build
     $sourcePath = Join-Path $PSScriptRoot PSThreadJob
     Push-Location $sourcePath
     try {
+        Write-Log "Building PSThreadJob binary..."
         dotnet publish --configuration $Configuration --framework $Framework --output bin
 
-        # Copy module psd1 file for signing
-        $psd1FilePath = Join-Path $sourcePath PSThreadJob.psd1
-        $destPath = Join-Path $sourcePath "bin\$Release\$Framework"
-        Copy-Item -Path $psd1FilePath -Destination $destPath
+        $destPath = Join-Path $sourcePath "bin\$Configuration\PSThreadJob"
+        if (! (Test-Path $destPath))
+        {
+            $null = New-Item -Path $destPath -ItemType Directory
+        }
+
+        Write-Log "Copying PSThreadJob.psd1 file for signing to $destPath"
+        $psd1FilePath = Join-Path . PSThreadJob.psd1
+        Copy-Item -Path $psd1FilePath -Destination $destPath -Force
+
+        Write-Log "Copying Microsoft.PowerShell.PSThreadJob.dll file for signing to $destPath"
+        $binFilePath = Join-Path . "bin\$Configuration\$Framework\Microsoft.PowerShell.PSThreadJob.dll"
+        Copy-Item -Path $binFilePath -Destination $destPath -Force
     }
     finally {
         Pop-Location
