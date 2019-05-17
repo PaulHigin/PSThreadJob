@@ -82,7 +82,15 @@ function Invoke-Build
         Write-Log "Building PSThreadJob binary..."
         dotnet publish --configuration $Configuration --framework $Framework --output bin
 
-        $destPath = Join-Path $sourcePath "bin\$Configuration\PSThreadJob"
+        Write-Log "Create Signed signing destination directory"
+        $signedPath  = Join-Path . "bin\$Configuration\Signed"
+        if (! (Test-Path $signedPath))
+        {
+            $null = New-Item -Path $signedPath -ItemType Directory
+        }
+
+        Write-Log "Creating PSThreadJob signing source directory"
+        $destPath = Join-Path . "bin\$Configuration\PSThreadJob"
         if (! (Test-Path $destPath))
         {
             $null = New-Item -Path $destPath -ItemType Directory
