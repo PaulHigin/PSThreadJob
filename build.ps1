@@ -82,25 +82,25 @@ function Invoke-Build
         Write-Log "Building PSThreadJob binary..."
         dotnet publish --configuration $Configuration --framework $Framework --output bin
 
-        Write-Log "Create Signed signing destination directory"
+        Write-Log "Create Signed signing destination directory..."
         $signedPath  = Join-Path . "bin\$Configuration\Signed"
         if (! (Test-Path $signedPath))
         {
             $null = New-Item -Path $signedPath -ItemType Directory
         }
 
-        Write-Log "Creating PSThreadJob signing source directory"
+        Write-Log "Creating PSThreadJob signing source directory..."
         $destPath = Join-Path . "bin\$Configuration\PSThreadJob"
         if (! (Test-Path $destPath))
         {
             $null = New-Item -Path $destPath -ItemType Directory
         }
 
-        Write-Log "Copying PSThreadJob.psd1 file for signing to $destPath"
+        Write-Log "Copying PSThreadJob.psd1 file for signing to $destPath..."
         $psd1FilePath = Join-Path . PSThreadJob.psd1
         Copy-Item -Path $psd1FilePath -Destination $destPath -Force
 
-        Write-Log "Copying Microsoft.PowerShell.PSThreadJob.dll file for signing to $destPath"
+        Write-Log "Copying Microsoft.PowerShell.PSThreadJob.dll file for signing to $destPath..."
         $binFilePath = Join-Path . "bin\$Configuration\$Framework\Microsoft.PowerShell.PSThreadJob.dll"
         Copy-Item -Path $binFilePath -Destination $destPath -Force
     }

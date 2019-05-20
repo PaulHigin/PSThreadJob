@@ -39,7 +39,7 @@ jobs:
       disableBuildTools: true
       disableNugetPack: true
 
-  - pwsh: |
+  - powershell: |
       $(Build.SourcesDirectory)\build.ps1 -Bootstrap
       $(Build.SourcesDirectory)\build.ps1 -Configuration Release -Framework net461
       # Set target folder paths
@@ -64,14 +64,14 @@ jobs:
       binVersionOverride: ''
 
   # Replace the *.psm1, *.ps1, *.psd1, *.dll files with the signed ones
-  - pwsh: |
+  - powershell: |
       # Show the signed files
       Get-ChildItem -Path $(Signed)
       Copy-Item -Path $(Signed)\* -Destination $(PSThreadJob) -Force
     displayName: 'Replace unsigned files with signed ones'
 
   # Create catalog file from the signed modules files
-  - pwsh: |
+  - powershell: |
       New-FileCatalog -CatalogFilePath $(PSThreadJob)\PSThreadJob.cat -Path $(PSThreadJob) -CatalogVersion 2.0 | `
           ForEach-Object -MemberName FullName
     displayName: 'Create catalog file'
@@ -89,14 +89,14 @@ jobs:
       binVersionOverride: ''
 
   # Copy the signed catalog file over
-  - pwsh: |
+  - powershell: |
       # Show the signed files
       Get-ChildItem -Path $(Signed)
       Copy-Item -Path $(Signed)\PSThreadJob.cat -Destination $(PSThreadJob) -Force
     displayName: 'Replace catalog file with the signed one'
 
   # Verify the signatures
-  - pwsh: |
+  - powershell: |
       $HasInvalidFiles = $false
       $WrongCert = @{}
       Get-ChildItem -Path $(PSThreadJob) -Recurse -Include "*.dll","*.ps*1*","*.cat" | `
@@ -115,13 +115,13 @@ jobs:
       }
     displayName: 'Verify the signed files'
 
-  - pwsh: |
+  - powershell: |
       $CatInfo = Test-FileCatalog -Path $(PSThreadJob) -CatalogFilePath $(PSThreadJob)\PSThreadJob.cat -Detailed
       $CatInfo | Format-List
       if ($CatInfo.Status -ne "Valid") { throw "Catalog file is invalid." }
     displayName: 'Verify the catalog file'
 
-  - pwsh: |
+  - powershell: |
       Get-ChildItem -Path $(PSThreadJob)
       Write-Host "##vso[artifact.upload containerfolder=PSThreadJob;artifactname=PSThreadJob]$(PSThreadJob)"
     displayName: 'Upload module artifacts'
