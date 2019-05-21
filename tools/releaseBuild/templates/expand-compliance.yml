@@ -1,6 +1,6 @@
 steps:
   - powershell: |
-      Expand-Archive -Path "$(System.ArtifactsDirectory)\results\PSThreadJob.zip" -Destination "$(Build.StagingDirectory)\symbols"
+      Expand-Archive -Path "$(System.ArtifactsDirectory)\PSThreadJob\PSThreadJob.zip" -Destination "$(Build.StagingDirectory)\symbols"
     displayName: Expand symbols zip
 
   - powershell: |

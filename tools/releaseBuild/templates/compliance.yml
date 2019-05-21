@@ -18,7 +18,7 @@ jobs:
     inputs:
       buildType: current
       downloadType: single
-      artifactName: results
+      artifactName: PSThreadJob
       downloadPath: '$(System.ArtifactsDirectory)'
 
   - powershell: |
