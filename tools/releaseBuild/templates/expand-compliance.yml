@@ -1,5 +1,3 @@
-parameters:
-
 steps:
   - powershell: |
       Expand-Archive -Path "$(System.ArtifactsDirectory)\results\PSThreadJob.zip" -Destination "$(Build.StagingDirectory)\symbols"
