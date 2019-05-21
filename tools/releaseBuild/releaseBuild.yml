@@ -127,7 +127,7 @@ jobs:
     displayName: 'Upload module artifacts'
 
 # TODO: Implement
-#- template: templates/compliance.yml
-#  parameters:
-#    parentJobs:
-#      - build_windows
+- template: templates/compliance.yml
+  parameters:
+    parentJobs:
+      - build_windows

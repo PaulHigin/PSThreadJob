@@ -4,6 +4,7 @@ param(
     [Parameter(HelpMessage="Artifact folder to find compliance files in.")]
     [string[]]
     $ArtifactFolder,
+
     [Parameter(HelpMessage="VSTS Variable to set path to complinance Files.")]
     [string]
     $VSTSVariableName
@@ -18,25 +19,7 @@ foreach($folder in $ArtifactFolder)
 
     $parentName = Split-Path -Path $folder -Leaf
 
-    # Use simplified names because some of the compliance tools didn't like the full names
-    # decided not to use hashes because the names need to be consistent otherwise the tool also has issues
-    # which is another problem with the full name, it includes version.
-    if ($parentName -match 'x64' -or $parentName -match 'amd64')
-    {
-        $name = 'x64'
-    }
-    elseif ($parentName -match 'x86') {
-        $name = 'x86'
-    }
-    elseif ($parentName -match 'fxdependent') {
-        $name = 'fxd'
-    }
-    else
-    {
-        throw "$parentName could not be classified as x86 or x64"
-    }
-
-    # Throw is compliance zip does not exist
+    # Throw if compliance zip does not exist
     if (!(Test-Path $filename))
     {
         throw "symbols.zip for $VSTSVariableName does not exist"
@@ -50,7 +33,7 @@ foreach($folder in $ArtifactFolder)
     }
 
     # Extract complance files to individual folder to avoid overwriting files.
-    $unzipPath = Join-Path -Path $compliancePath -ChildPath $name
+    $unzipPath = Join-Path -Path $compliancePath -ChildPath $parentName
     Write-Host "Symbols-zip: $filename ; unzipPath: $unzipPath"
     Expand-Archive -Path $fileName -DestinationPath $unzipPath
 }
