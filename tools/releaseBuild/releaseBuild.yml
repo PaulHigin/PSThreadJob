@@ -62,6 +62,7 @@ jobs:
       outPathRoot: '$(Signed)'
       binVersion: Production
       binVersionOverride: ''
+   condition: and(and(succeeded(), eq(variables['Build.Reason'], 'Manual')), ne(variables['SkipSigning'], 'True'))
 
   # Replace the *.psm1, *.ps1, *.psd1, *.dll files with the signed ones
   - powershell: |
@@ -87,6 +88,7 @@ jobs:
       outPathRoot: '$(Signed)'
       binVersion: Production
       binVersionOverride: ''
+    condition: and(and(succeeded(), eq(variables['Build.Reason'], 'Manual')), ne(variables['SkipSigning'], 'True'))
 
   # Copy the signed catalog file over
   - powershell: |
@@ -126,7 +128,6 @@ jobs:
       Write-Host "##vso[artifact.upload containerfolder=PSThreadJob;artifactname=PSThreadJob]$(PSThreadJob)"
     displayName: 'Upload module artifacts'
 
-# TODO: Implement
 - template: templates/compliance.yml
   parameters:
     parentJobs:
