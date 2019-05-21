@@ -62,7 +62,7 @@ jobs:
       outPathRoot: '$(Signed)'
       binVersion: Production
       binVersionOverride: ''
-   condition: and(and(succeeded(), eq(variables['Build.Reason'], 'Manual')), ne(variables['SkipSigning'], 'True'))
+    condition: and(and(succeeded(), eq(variables['Build.Reason'], 'Manual')), ne(variables['SkipSigning'], 'True'))
 
   # Replace the *.psm1, *.ps1, *.psd1, *.dll files with the signed ones
   - powershell: |
