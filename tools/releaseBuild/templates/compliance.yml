@@ -27,7 +27,6 @@ jobs:
     continueOnError: true
 
   - template: expand-compliance.yml
-    parameters:
 
   - task: securedevelopmentteam.vss-secure-development-tools.build-task-antimalware.AntiMalware@3
     displayName: 'Run Defender Scan'
