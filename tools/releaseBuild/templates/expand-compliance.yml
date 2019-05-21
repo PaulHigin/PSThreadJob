@@ -1,8 +1,0 @@
-steps:
-  - powershell: |
-      Expand-Archive -Path "$(System.ArtifactsDirectory)\PSThreadJob\PSThreadJob.zip" -Destination "$(Build.StagingDirectory)\symbols"
-    displayName: Expand symbols zip
-
-  - powershell: |
-      tools/releaseBuild/createComplianceFolder.ps1 -ArtifactFolder "$(Build.StagingDirectory)\symbols" -VSTSVariableName 'CompliancePath'
-    displayName: Expand Compliance file

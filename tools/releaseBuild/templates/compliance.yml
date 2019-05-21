@@ -26,15 +26,12 @@ jobs:
     displayName: 'Capture artifacts directory'
     continueOnError: true
 
-  - template: expand-compliance.yml
-
   - task: securedevelopmentteam.vss-secure-development-tools.build-task-antimalware.AntiMalware@3
     displayName: 'Run Defender Scan'
 
   - task: securedevelopmentteam.vss-secure-development-tools.build-task-credscan.CredScan@2
     displayName: 'Run CredScan'
     inputs:
-      suppressionsFile: tools/credScan/suppress.json
       debugMode: false
     continueOnError: true
 
@@ -42,7 +39,7 @@ jobs:
     displayName: 'Run BinSkim '
     inputs:
       InputType: Basic
-      AnalyzeTarget: '$(CompliancePath)\*.dll;$(CompliancePath)\*.exe'
+      AnalyzeTarget: '$(Build.SourcesDirectory)\*.dll'
       AnalyzeSymPath: 'SRV*'
       AnalyzeVerbose: true
       AnalyzeHashes: true
@@ -57,17 +54,17 @@ jobs:
       optionsXS: 0
       optionsPE: '1|2|3|4'
       optionsHMENABLE: 0
-      optionsRulesDBPath: '$(Build.SourcesDirectory)\tools\terms\PowerShell-Terms-Rules.mdb'
-      optionsFTPATH: '$(Build.SourcesDirectory)\tools\terms\FileTypeSet.xml'
+#      optionsRulesDBPath: '$(Build.SourcesDirectory)\tools\terms\PowerShell-Terms-Rules.mdb'
+#      optionsFTPATH: '$(Build.SourcesDirectory)\tools\terms\FileTypeSet.xml'
       toolVersion: 5.8.2.1
     continueOnError: true
 
   - task: securedevelopmentteam.vss-secure-development-tools.build-task-apiscan.APIScan@1
     displayName: 'Run APIScan'
     inputs:
-      softwareFolder: '$(CompliancePath)'
+      softwareFolder: '$(Build.SourcesDirectory)'
       softwareName: PowerShell
-      softwareVersionNum: '$(ReleaseTagVar)'
+      softwareVersionNum: '$(ModVersion)'
       isLargeApp: false
       preserveTempFiles: true
     continueOnError: true
