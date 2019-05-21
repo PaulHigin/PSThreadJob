@@ -96,6 +96,7 @@ jobs:
       Get-ChildItem -Path $(Signed)
       Copy-Item -Path $(Signed)\PSThreadJob.cat -Destination $(PSThreadJob) -Force
     displayName: 'Replace catalog file with the signed one'
+    condition: and(and(succeeded(), eq(variables['Build.Reason'], 'Manual')), ne(variables['SkipSigning'], 'True'))
 
   # Verify the signatures
   - powershell: |
@@ -116,12 +117,14 @@ jobs:
           throw "Certificate should have the subject starts with 'Microsoft Corporation'"
       }
     displayName: 'Verify the signed files'
+    condition: and(and(succeeded(), eq(variables['Build.Reason'], 'Manual')), ne(variables['SkipSigning'], 'True'))
 
   - powershell: |
       $CatInfo = Test-FileCatalog -Path $(PSThreadJob) -CatalogFilePath $(PSThreadJob)\PSThreadJob.cat -Detailed
       $CatInfo | Format-List
       if ($CatInfo.Status -ne "Valid") { throw "Catalog file is invalid." }
     displayName: 'Verify the catalog file'
+    condition: and(and(succeeded(), eq(variables['Build.Reason'], 'Manual')), ne(variables['SkipSigning'], 'True'))
 
   - powershell: |
       Get-ChildItem -Path $(PSThreadJob)
