@@ -9,6 +9,8 @@ variables:
   DOTNET_CLI_TELEMETRY_OPTOUT: 1
   POWERSHELL_TELEMETRY_OPTOUT: 1
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
+  BUILD_CONFIGURATION: "Release"
+  BUILD_FRAMEWORK: "Net461"
 
 # Set AzDevOps Agent to clean the machine after the end of the build
 resources:
@@ -41,12 +43,12 @@ jobs:
 
   - powershell: |
       $(Build.SourcesDirectory)\build.ps1 -Bootstrap
-      $(Build.SourcesDirectory)\build.ps1 -Configuration Release -Framework net461
+      $(Build.SourcesDirectory)\build.ps1 -Configuration $(BUILD_CONFIGURATION) -Framework $(BUILD_FRAMEWORK)
       # Set target folder paths
-      $vstsCommandString = "vso[task.setvariable variable=PSThreadJob]$(Build.SourcesDirectory)\PSThreadJob\bin\release\PSThreadJob"
+      $vstsCommandString = "vso[task.setvariable variable=PSThreadJob]$(Build.SourcesDirectory)\PSThreadJob\bin\$(BUILD_CONFIGURATION)\PSThreadJob"
       Write-Host "sending " + $vstsCommandString
       Write-Host "##$vstsCommandString"
-      $vstsCommandString = "vso[task.setvariable variable=Signed]$(Build.SourcesDirectory)\PSThreadJob\bin\release\Signed"
+      $vstsCommandString = "vso[task.setvariable variable=Signed]$(Build.SourcesDirectory)\PSThreadJob\bin\$(BUILD_CONFIGURATION)\Signed"
       Write-Host "sending " + $vstsCommandString
       Write-Host "##$vstsCommandString"
       $modVersion = (Import-PowerShellDataFile -Path $(Build.SourcesDirectory)\PSThreadJob\PSThreadJob.psd1).ModuleVersion
@@ -135,7 +137,7 @@ jobs:
       Write-Host "##vso[artifact.upload containerfolder=PSThreadJob;artifactname=PSThreadJob]$(PSThreadJob)"
     displayName: 'Upload module artifacts'
 
-- template: templates/compliance.yml
-  parameters:
-    parentJobs:
-      - build_windows
+  - template: templates/compliance.yml
+    parameters:
+      configuration: $(BUILD_CONFIGURATION)
+      framework: $(BUILD_FRAMEWORK)
