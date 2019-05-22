@@ -49,7 +49,7 @@ jobs:
       $vstsCommandString = "vso[task.setvariable variable=Signed]$(Build.SourcesDirectory)\PSThreadJob\bin\release\Signed"
       Write-Host "sending " + $vstsCommandString
       Write-Host "##$vstsCommandString"
-      $modVersion = (Import-PowerShellDataFile -Path $(Build.SourcesDirectory)\PSThreadJob.psd1).ModuleVersion
+      $modVersion = (Import-PowerShellDataFile -Path $(Build.SourcesDirectory)\PSThreadJob\PSThreadJob.psd1).ModuleVersion
       $vstsCommandString = "vso[task.setvariable variable=ModVersion]$modVersion"
       Write-Host "sending " + $vstsCommandString
       Write-Host "##$vstsCommandString"
