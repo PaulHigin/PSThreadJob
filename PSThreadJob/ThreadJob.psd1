@@ -5,7 +5,7 @@
 @{
 
 # Script module or binary module file associated with this manifest.
-RootModule = '.\Microsoft.PowerShell.PSThreadJob.dll'
+RootModule = '.\Microsoft.PowerShell.ThreadJob.dll'
 
 # Version number of this module.
 ModuleVersion = '2.0.0'
@@ -38,6 +38,9 @@ The main difference is that the jobs which are created run in separate threads w
 One difference is that ThreadJob jobs support a ThrottleLimit parameter to limit the number of running jobs,
 and thus active threads, at a time.  If more jobs are started then they go into a queue and wait until the current
 number of jobs drops below the throttle limit.
+
+Source for this module is at GitHub.  Please submit any issues there.
+https://github.com/PaulHigin/PSThreadJob
 
 Added Runspace cleanup.
 Added Using variable expression support.

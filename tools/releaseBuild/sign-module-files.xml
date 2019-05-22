@@ -3,7 +3,7 @@
 <!-- Config files for Azure DevOps code-signing pipeline. -->
 <SignConfigXML>
   <job platform="" configuration="" dest="__OUTPATHROOT__\signed" jobname="PSThreadJob" approvers="vigarg;gstolt">
-    <file src="__INPATHROOT__\PSThreadJob.psd1" signType="AuthenticodeFormer" dest="__OUTPATHROOT__\PSThreadJob.psd1" />
-    <file src="__INPATHROOT__\Microsoft.PowerShell.PSThreadJob.dll" signType="AuthenticodeFormer" dest="__OUTPATHROOT__\Microsoft.PowerShell.PSThreadJob.dll" />
+    <file src="__INPATHROOT__\ThreadJob.psd1" signType="AuthenticodeFormer" dest="__OUTPATHROOT__\ThreadJob.psd1" />
+    <file src="__INPATHROOT__\Microsoft.PowerShell.ThreadJob.dll" signType="AuthenticodeFormer" dest="__OUTPATHROOT__\Microsoft.PowerShell.ThreadJob.dll" />
   </job>
 </SignConfigXML>

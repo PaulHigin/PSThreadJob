@@ -2,8 +2,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Library</OutputType>
-    <RootNamespace>PSThreadJob</RootNamespace>
-    <AssemblyName>Microsoft.PowerShell.PSThreadJob</AssemblyName>
+    <RootNamespace>ThreadJob</RootNamespace>
+    <AssemblyName>Microsoft.PowerShell.ThreadJob</AssemblyName>
     <AssemblyVersion>2.0.0.0</AssemblyVersion>
     <FileVersion>2.0.0</FileVersion>
     <InformationalVersion>2.0.0</InformationalVersion>
@@ -20,7 +20,7 @@
     <PackageReference Include="Microsoft.CSharp" version="4.5.0-*" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="PSThreadJob.psd1" />
+    <None Include="ThreadJob.psd1" />
     <None Include="Changes.txt" />
     <None Include="License.txt" />
   </ItemGroup>

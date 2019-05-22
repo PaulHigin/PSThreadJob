@@ -16,7 +16,7 @@ using System.Management.Automation.Security;
 using System.Text;
 using System.Threading;
 
-namespace PSThreadJob
+namespace ThreadJob
 {
     [Cmdlet(VerbsLifecycle.Start, "ThreadJob")]
     [OutputType(typeof(ThreadJob))]

@@ -96,12 +96,12 @@ function Invoke-Build
             $null = New-Item -Path $destPath -ItemType Directory
         }
 
-        Write-Log "Copying PSThreadJob.psd1 file for signing to $destPath..."
-        $psd1FilePath = Join-Path . PSThreadJob.psd1
+        Write-Log "Copying ThreadJob.psd1 file for signing to $destPath..."
+        $psd1FilePath = Join-Path . ThreadJob.psd1
         Copy-Item -Path $psd1FilePath -Destination $destPath -Force
 
-        Write-Log "Copying Microsoft.PowerShell.PSThreadJob.dll file for signing to $destPath..."
-        $binFilePath = Join-Path . "bin\$Configuration\$Framework\Microsoft.PowerShell.PSThreadJob.dll"
+        Write-Log "Copying Microsoft.PowerShell.ThreadJob.dll file for signing to $destPath..."
+        $binFilePath = Join-Path . "bin\$Configuration\$Framework\Microsoft.PowerShell.ThreadJob.dll"
         Copy-Item -Path $binFilePath -Destination $destPath -Force
     }
     finally {
