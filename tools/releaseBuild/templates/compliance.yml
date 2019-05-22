@@ -39,7 +39,7 @@ jobs:
     displayName: 'Run BinSkim '
     inputs:
       InputType: Basic
-      AnalyzeTarget: '$(Build.SourcesDirectory)\PSThreadJob\bin\Release\PSThreadJob\*.dll'
+      AnalyzeTarget: '$(Build.SourcesDirectory)\bin\Release\PSThreadJob\*.dll'
       AnalyzeSymPath: 'SRV*'
       AnalyzeVerbose: true
       AnalyzeHashes: true
