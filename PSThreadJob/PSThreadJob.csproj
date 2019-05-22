@@ -1,0 +1,27 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <RootNamespace>ThreadJob</RootNamespace>
+    <AssemblyName>Microsoft.PowerShell.ThreadJob</AssemblyName>
+    <AssemblyVersion>2.0.0.0</AssemblyVersion>
+    <FileVersion>2.0.0</FileVersion>
+    <InformationalVersion>2.0.0</InformationalVersion>
+    <TargetFrameworks>net461;netcoreapp2.1</TargetFrameworks>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System.Management.Automation, Version=3.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>C:\Windows\Microsoft.NET\assembly\GAC_MSIL\System.Management.Automation\v4.0_3.0.0.0__31bf3856ad364e35\System.Management.Automation.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="PowerShellStandard.Library" version="5.1.0-*" />
+    <PackageReference Include="Microsoft.CSharp" version="4.5.0-*" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="ThreadJob.psd1" />
+    <None Include="Changes.txt" />
+    <None Include="License.txt" />
+  </ItemGroup>
+</Project>

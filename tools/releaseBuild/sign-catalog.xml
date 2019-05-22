@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8" ?>
+
+<!-- Config files for Azure DevOps code-signing pipeline. -->
+<SignConfigXML>
+  <job platform="" configuration="" dest="__OUTPATHROOT__\signed" jobname="PSThreadJob" approvers="paulhi;slee">
+    <file src="__INPATHROOT__\PSThreadJob.cat" signType="AuthenticodeFormer" dest="__OUTPATHROOT__\PSThreadJob.cat" />
+  </job>
+</SignConfigXML>
