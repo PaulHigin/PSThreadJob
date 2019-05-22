@@ -63,6 +63,7 @@ steps:
     uploadPREfast: false
     uploadRoslyn: false
     uploadTSLint: false
+    uploadAPIScan: false
 
 - task: securedevelopmentteam.vss-secure-development-tools.build-task-report.SdtReport@1
   displayName: 'Create Security Analysis Report'
