@@ -286,7 +286,6 @@ namespace ThreadJob
         private string _filePath;
         private ScriptBlock _initSb;
         private object[] _argumentList;
-        private object[] _usingValuesArray;
         private Dictionary<string, object> _usingValuesMap;
         private PSDataCollection<object> _input;
         private Runspace _rs;
@@ -480,17 +479,8 @@ namespace ThreadJob
             if (usingAsts != null &&
                 usingAsts.FirstOrDefault() != null)
             {
-                var psVersion = GetPSVersion();
-
-                // Get using variables as an array or dictionary, depending on PowerShell version.
-                if (psVersion.Major >= 5)
-                {
-                    _usingValuesMap = GetUsingValuesAsDictionary(usingAsts, psCmdlet);
-                }
-                else if (psVersion.Major == 3 || psVersion.Major == 4)
-                {
-                    _usingValuesArray = GetUsingValuesAsArray(usingAsts, psCmdlet);
-                }
+                // Get using variables as dictionary, since we now only support PowerShell version 5.1 and greater
+                _usingValuesMap = GetUsingValuesAsDictionary(usingAsts, psCmdlet);
             }
 
             // Hook up data streams.
@@ -830,10 +820,6 @@ namespace ThreadJob
             {
                 _ps.AddParameter(VERBATIM_ARGUMENT, _usingValuesMap);
             }
-            else if (_usingValuesArray != null && _usingValuesArray.Length > 0)
-            {
-                _ps.AddParameter(VERBATIM_ARGUMENT, _usingValuesArray);
-            }
 
             _ps.BeginInvoke<object, PSObject>(_input, _output);
         }
@@ -880,11 +866,6 @@ namespace ThreadJob
             {
                 _rs.Dispose();
             }
-        }
-
-        private static object[] GetUsingValuesAsArray(IEnumerable<UsingExpressionAst> usingAsts, PSCmdlet psCmdlet)
-        {
-            return GetUsingValuesAsDictionary(usingAsts, psCmdlet).Values.ToArray();
         }
 
         private static Dictionary<string, object> GetUsingValuesAsDictionary(IEnumerable<UsingExpressionAst> usingAsts, PSCmdlet psCmdlet)
@@ -939,28 +920,6 @@ namespace ThreadJob
             }
 
             return Convert.ToBase64String(Encoding.Unicode.GetBytes(usingAstText.ToCharArray()));
-        }
-
-        private static Version GetPSVersion()
-        {
-            using (var ps = PowerShell.Create())
-            {
-                try
-                {
-                    var results = ps.AddScript("$PSVersionTable").Invoke<System.Collections.Hashtable>();
-                    if (results.Count == 1)
-                    {
-                        var versionString = (results[0]["PSVersion"]).ToString();
-                        if (Version.TryParse(versionString, out Version version))
-                        {
-                            return version;
-                        }
-                    }
-                }
-                catch (Exception) { }
-            }
-
-            return new Version(3, 0);
         }
 
         #endregion
