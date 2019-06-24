@@ -8,7 +8,7 @@
 RootModule = '.\Microsoft.PowerShell.ThreadJob.dll'
 
 # Version number of this module.
-ModuleVersion = '2.0.0'
+ModuleVersion = '2.0.1'
 
 # ID used to uniquely identify this module
 GUID = 'c28d8b9b-75c0-4229-bb43-b60218c47bef'
@@ -47,6 +47,7 @@ Added Using variable expression support.
 Added StreamingHost parameter to stream host data writes to a provided host object.
 Added Information stream handling.
 Bumped version to 2.0.0, and now only support PowerShell version 5.1 and higher.
+Fixed using keyword bug with PowerShell preview version, and removed unneeded version check.
 "
 
 # Minimum version of the Windows PowerShell engine required by this module
