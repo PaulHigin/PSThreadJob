@@ -42,7 +42,7 @@ namespace ThreadJob
         [Parameter(ParameterSetName = FilePathParameterSet, Mandatory=true, Position=0)]
         [ValidateNotNullOrEmpty]
         public string FilePath { get; set; }
-    
+
         [Parameter(ParameterSetName = ScriptBlockParameterSet)]
         [Parameter(ParameterSetName = FilePathParameterSet)]
         [ValidateNotNullOrEmpty]
@@ -278,7 +278,7 @@ namespace ThreadJob
     /// <summary>
     /// ThreadJob
     /// </summary>
-    public sealed class ThreadJob : Job2
+    public sealed class ThreadJob : Job2, IJobDebugger
     {
         #region Private members
 
@@ -297,6 +297,11 @@ namespace ThreadJob
         private const string VERBATIM_ARGUMENT = "--%";
 
         private static ThreadJobQueue s_JobQueue;
+
+        // object used for synchronization
+        private object SyncObject = new object();
+
+        private volatile Debugger _jobDebugger;
 
         #endregion
 
@@ -799,6 +804,38 @@ namespace ThreadJob
 
         #endregion
 
+        #region IJobDebugger
+
+        /// <summary>
+        /// Job Debugger.
+        /// </summary>
+        public Debugger Debugger
+        {
+            get
+            {
+                if (_jobDebugger == null)
+                {
+                    lock (SyncObject)
+                    {
+                        if ((_jobDebugger == null) &&
+                            (_rs.Debugger != null))
+                        {
+                            _jobDebugger = _rs.Debugger;
+                        }
+                    }
+                }
+
+                return _jobDebugger;
+            }
+        }
+
+        /// <summary>
+        /// True if job is asynchronous and can be debugged.
+        /// </summary>
+        public bool IsAsync { get; set; }
+
+        #endregion
+
         #region Private methods
 
         // Private methods
@@ -877,7 +914,7 @@ namespace ThreadJob
                 var varAst = usingAst.SubExpression as VariableExpressionAst;
                 if (varAst == null)
                 {
-                    var msg = string.Format(CultureInfo.InvariantCulture, 
+                    var msg = string.Format(CultureInfo.InvariantCulture,
                         Properties.Resources.UsingNotVariableExpression,
                         new object[] { usingAst.Extent.Text });
                     throw new PSInvalidOperationException(msg);
@@ -895,7 +932,7 @@ namespace ThreadJob
                 catch (Exception ex)
                 {
                     var msg = string.Format(CultureInfo.InvariantCulture,
-                        Properties.Resources.UsingVariableNotFound, 
+                        Properties.Resources.UsingVariableNotFound,
                         new object[] { usingAst.Extent.Text });
                     throw new PSInvalidOperationException(msg, ex);
                 }
