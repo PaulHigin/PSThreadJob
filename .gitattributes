@@ -1,0 +1,17 @@
+# Set default behaviour, in case users don't have core.autocrlf set.
+* text=auto
+
+# Explicitly declare text files we want to always be normalized and converted
+# to native line endings on checkout.
+*.gitattributes text
+*.gitignore     text
+*.sln           text
+*.csproj        text
+*.cs            text
+*.resx          text
+*.xml           text
+*.yml           text
+*.ps1           text
+*.psd1          text
+*.psm1          text
+*.md            text

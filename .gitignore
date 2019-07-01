@@ -1,0 +1,18 @@
+bin/
+obj/
+
+# VS auto-generated solution files for project.json solutions
+*.xproj
+*.xproj.user
+*.suo
+
+# VS auto-generated files for csproj files
+*.csproj.user
+
+# Visual Studio IDE directory
+.vs/
+
+# Ignore binaries and symbols
+*.pdb
+*.dll
+*.wixpdb
