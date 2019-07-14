@@ -4,7 +4,6 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Globalization;
 using System.Linq;
@@ -460,7 +459,6 @@ namespace ThreadJob
         private object[] _argumentList;
         private Dictionary<string, object> _usingValuesMap;
         private PSDataCollection<object> _input;
-        private Runspace _rs;
         private PowerShell _ps;
         private PSDataCollection<PSObject> _output;
         private bool _runningInitScript;
@@ -479,6 +477,15 @@ namespace ThreadJob
         /// Specifies the job definition for the JobManager
         /// </summary>
         public JobDefinition ThreadJobDefinition
+        {
+            get;
+            private set;
+        }
+
+        /// <summary>
+        /// Identifies the runspace where the threadjob will be run.
+        /// </summary>
+        public Runspace Runspace
         {
             get;
             private set;
@@ -603,16 +610,12 @@ namespace ThreadJob
                 iss.LanguageMode = enforceLockdown ? PSLanguageMode.ConstrainedLanguage : PSLanguageMode.FullLanguage;
             }
 
-            if (_streamingHost != null)
-            {
-                _rs = RunspaceFactory.CreateRunspace(_streamingHost, iss);
-            }
-            else
-            {
-                _rs = RunspaceFactory.CreateRunspace(iss);
-            }
+            Runspace = _streamingHost != null
+                ? RunspaceFactory.CreateRunspace(_streamingHost, iss)
+                : RunspaceFactory.CreateRunspace(iss);
+
             _ps = PowerShell.Create();
-            _ps.Runspace = _rs;
+            _ps.Runspace = Runspace;
             _ps.InvocationStateChanged += (sender, psStateChanged) =>
             {
                 var newStateInfo = psStateChanged.InvocationStateInfo;
@@ -706,7 +709,7 @@ namespace ThreadJob
             }
 
             // Initialize Runspace state
-            _rs.Open();
+            Runspace.Open();
 
             // If initial script block provided then execute.
             if (_initSb != null)
@@ -981,9 +984,9 @@ namespace ThreadJob
         {
             get
             {
-                if (_jobDebugger == null && _rs.Debugger != null)
+                if (_jobDebugger == null && Runspace.Debugger != null)
                 {
-                    _jobDebugger = new ThreadJobDebugger(_rs.Debugger, this.Name);
+                    _jobDebugger = new ThreadJobDebugger(Runspace.Debugger, this.Name);
                 }
 
                 return _jobDebugger;
@@ -1066,7 +1069,7 @@ namespace ThreadJob
             base.SetJobState(jobState, reason);
             if (disposeRunspace)
             {
-                _rs.Dispose();
+                Runspace.Dispose();
             }
         }
 
