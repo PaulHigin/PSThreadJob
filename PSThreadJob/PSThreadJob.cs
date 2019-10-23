@@ -4,7 +4,6 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Globalization;
 using System.Linq;
@@ -26,6 +25,7 @@ namespace ThreadJob
 
         private bool _processFirstRecord;
         private string _command;
+        private string _currentLocationPath;
         private ThreadJob _threadJob;
 
         #endregion
@@ -87,6 +87,14 @@ namespace ThreadJob
             {
                 _command = FilePath;
             }
+
+            try
+            {
+                _currentLocationPath = SessionState.Path.CurrentLocation.Path;
+            }
+            catch (PSInvalidOperationException)
+            {
+            }
         }
 
         protected override void ProcessRecord()
@@ -98,12 +106,12 @@ namespace ThreadJob
                 if (StreamingHost != null)
                 {
                     _threadJob = new ThreadJob(Name, _command, ScriptBlock, FilePath, InitializationScript, ArgumentList,
-                                               InputObject, this, StreamingHost);
+                                               InputObject, this, _currentLocationPath, StreamingHost);
                 }
                 else
                 {
                     _threadJob = new ThreadJob(Name, _command, ScriptBlock, FilePath, InitializationScript, ArgumentList,
-                                               InputObject, this);
+                                               InputObject, this, _currentLocationPath);
                 }
 
                 ThreadJob.StartJob(_threadJob, ThrottleLimit);
@@ -466,6 +474,7 @@ namespace ThreadJob
         private bool _runningInitScript;
         private PSHost _streamingHost;
         private Debugger _jobDebugger;
+        private string _currentLocationPath;
 
         private const string VERBATIM_ARGUMENT = "--%";
 
@@ -508,6 +517,7 @@ namespace ThreadJob
         /// <param name="argumentList"></param>
         /// <param name="inputObject"></param>
         /// <param name="psCmdlet"></param>
+        /// <param name="currentLocationPath"></param>
         public ThreadJob(
             string name,
             string command,
@@ -516,8 +526,9 @@ namespace ThreadJob
             ScriptBlock initSb,
             object[] argumentList,
             PSObject inputObject,
-            PSCmdlet psCmdlet)
-            : this(name, command, sb, filePath, initSb, argumentList, inputObject, psCmdlet, null)
+            PSCmdlet psCmdlet,
+            string currentLocationPath)
+            : this(name, command, sb, filePath, initSb, argumentList, inputObject, psCmdlet, currentLocationPath, null)
         {
         }
 
@@ -532,6 +543,7 @@ namespace ThreadJob
         /// <param name="argumentList"></param>
         /// <param name="inputObject"></param>
         /// <param name="psCmdlet"></param>
+        /// <param name="currentLocationPath"></param>
         /// <param name="streamingHost"></param>
         public ThreadJob(
             string name,
@@ -542,6 +554,7 @@ namespace ThreadJob
             object[] argumentList,
             PSObject inputObject,
             PSCmdlet psCmdlet,
+            string currentLocationPath,
             PSHost streamingHost)
             : base(command, name)
         {
@@ -556,6 +569,7 @@ namespace ThreadJob
             }
             _output = new PSDataCollection<PSObject>();
             _streamingHost = streamingHost;
+            _currentLocationPath = currentLocationPath;
 
             this.PSJobTypeName = "ThreadJob";
 
@@ -707,6 +721,16 @@ namespace ThreadJob
 
             // Initialize Runspace state
             _rs.Open();
+
+            // Set current location path on the runspace, if available.
+            if (_currentLocationPath != null)
+            {
+                using (var ps = PowerShell.Create())
+                {
+                    ps.Runspace = _rs;
+                    ps.AddCommand("Set-Location").AddParameter("Path", _currentLocationPath).Invoke();
+                }
+            }
 
             // If initial script block provided then execute.
             if (_initSb != null)
