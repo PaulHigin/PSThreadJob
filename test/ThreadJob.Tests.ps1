@@ -362,6 +362,12 @@ Describe 'Basic ThreadJob Tests' -Tags 'CI' {
         $result = Start-ThreadJob -ScriptBlock { $ExecutionContext.SessionState.LanguageMode } | Wait-Job | Receive-Job
         $result | Should -Be "FullLanguage"
     }
+
+    It 'ThreadJob jobs should run in the current working directory' {
+
+        $threadJobCurrentLocation = Start-ThreadJob -ScriptBlock { $pwd } | Wait-Job | Receive-Job
+        $threadJobCurrentLocation.Path | Should -BeExactly $pwd.Path
+    }
 }
 
 Describe 'Job2 class API tests' -Tags 'CI' {
