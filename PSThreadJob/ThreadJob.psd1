@@ -57,4 +57,6 @@ PowerShellVersion = '5.1'
 # Cmdlets to export from this module
 CmdletsToExport = 'Start-ThreadJob'
 
+HelpInfoURI = 'https://go.microsoft.com/fwlink/?linkid=2113345'
+
 }
