@@ -728,7 +728,7 @@ namespace ThreadJob
                 using (var ps = PowerShell.Create())
                 {
                     ps.Runspace = _rs;
-                    ps.AddCommand("Set-Location").AddParameter("Path", _currentLocationPath).Invoke();
+                    ps.AddCommand("Set-Location").AddParameter("LiteralPath", _currentLocationPath).Invoke();
                 }
             }
 
